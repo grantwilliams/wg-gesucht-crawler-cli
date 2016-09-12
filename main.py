@@ -35,6 +35,16 @@ class MainWindow(ttk.Frame):
                 folder_thread = threading.Thread(target=create_results_folders.create_folders, args=[self.folder_queue])
                 folder_thread.daemon = True
                 folder_thread.start()
+        elif sys.platform == "linux":
+            self.pointer = "hand2"
+            choose_info_btn_font = "-size 20"
+            field_width = 30
+            home = expanduser('~')
+            if not os.path.exists("{}/WG Finder/WG Ad Links".format(home)) or not os.path.exists(
+                    "{}/WG Finder/Offline Ad Links".format(home)):
+                folder_thread = threading.Thread(target=create_results_folders.create_folders, args=[self.folder_queue])
+                folder_thread.daemon = True
+                folder_thread.start()
         else:
             self.pointer = "pointinghand"
             choose_info_btn_font = "-size 20"
@@ -60,6 +70,9 @@ class MainWindow(ttk.Frame):
         self.title_frame.columnconfigure(0, weight=1)
         self.title_frame.grid(row=0, column=0, padx=20, pady=(10, 20), sticky=tk.W+tk.E)
         if sys.platform == 'win32':
+            self.title_img = Image.open('.images/title.png')
+            self.title_photo = ImageTk.PhotoImage(self.title_img)
+        elif sys.platform == 'linux':
             self.title_img = Image.open('.images/title.png')
             self.title_photo = ImageTk.PhotoImage(self.title_img)
         else:
