@@ -12,6 +12,7 @@ from PIL import Image, ImageTk
 import psutil
 import wg_gesucht
 import create_results_folders
+import atexit
 
 
 class MainWindow(ttk.Frame):
@@ -55,6 +56,9 @@ class MainWindow(ttk.Frame):
                 folder_thread = threading.Thread(target=create_results_folders.create_folders, args=[self.folder_queue])
                 folder_thread.daemon = True
                 folder_thread.start()
+
+        # kills phantomjs process incase user exits program without stopping in first
+        atexit.register(self.kill_phantomjs)
 
         choose_info = ttk.Style()
         choose_info.configure("Choose.TButton", font=choose_info_btn_font, padding=(20, 40, 20, 40))
@@ -285,10 +289,17 @@ class MainWindow(ttk.Frame):
         self.main_process.start()
         self.parent.after(100, self.process_log_output_queue())
 
+    def kill_phantomjs(self):
+        for process in psutil.process_iter():
+            if 'phantomjs' in process.name():
+                process.kill()
+
     def stop(self):
         pid = self.main_process.pid
         self.main_process.terminate()
         for process in psutil.process_iter():
+            if 'phantomjs' in process.name():
+                process.kill()
             if process.pid == pid:
                 process.kill()
         self.main_process = multiprocessing.Process(target=wg_gesucht.start_searching,

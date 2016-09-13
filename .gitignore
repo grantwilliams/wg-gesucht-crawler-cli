@@ -57,6 +57,8 @@ __pycache__
 build
 dist
 *.csv
+.phantomjs
+ghostdriver.log
 Offline Ad Links
 WG Ad Links
 setup mac.py
