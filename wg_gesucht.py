@@ -46,12 +46,19 @@ def check_wg_credentials(login_info, cred_queue, call_origin):
     cred_queue.put("Signing into WG-Gesucht...")
 
     try:
-        WebDriverWait(driver, 40).until(EC.visibility_of_element_located((
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
             By.XPATH, ".//*[@id='service-navigation']/div[1]/div/a")))  # Xpath of logout button
     except exceptions.TimeoutException:
-        cred_queue.put("timed out {}".format(call_origin))
-        driver.quit()
-        return
+        try:
+            driver.find_element_by_id('credentials_invalid')
+        except exceptions.NoSuchElementException:
+            cred_queue.put("timed out {}".format(call_origin))
+            driver.quit()
+            return
+        else:
+            cred_queue.put("login not ok {}".format(call_origin))
+            driver.quit()
+            return
 
     soup = BeautifulSoup(driver.page_source, 'html.parser')
 
@@ -161,7 +168,7 @@ def already_sent(href):
         file_location = "WG Ad Links"
     else:
         file_location = "{}/WG Finder/WG Ad Links".format(home)
-    with open("{}/WG Ad Links.csv".format(file_location), 'rt'.format(file_location), encoding='utf-8') as file:
+    with open("{}/WG Ad Links.csv".format(file_location), 'rt', encoding='utf-8') as file:
         wg_links_file_csv = csv.reader(file)
         link_exists = False
         for wg_links_row in wg_links_file_csv:
@@ -253,7 +260,7 @@ def email_apartment(driver, log_output_queue, url, login_info, template_text):
 
     # cleans up file name to allow saving (removes illegal file name characters)
     def text_replace(text):
-        text = re.sub(r'\bhttps://www.wg-gesucht.de/\b|[:/\*?|<>&^%@#!]', '', text)
+        text = re.sub(r'\bhttps://www.wg-gesucht.de/\b|[:/*?|<>&^%@#!]', '', text)
         text = text.replace(':', '').replace('/', '').replace('\\', '').replace('*', '').replace('?', '').replace(
             '|', '').replace('<', '').replace('>', '').replace("https://www.wg-gesucht.de/", "")
         return text
@@ -392,7 +399,7 @@ def start_searching(login_info, log_output_queue, counter=1):
     log_output_queue.put("Signing into WG-Gesucht...")
 
     try:
-        WebDriverWait(driver, 40).until(EC.visibility_of_element_located((
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
             By.XPATH, ".//*[@id='service-navigation']/div[1]/div/a")))  # Xpath of logout button
     except exceptions.TimeoutException:
         log_output_queue.put("timed out")

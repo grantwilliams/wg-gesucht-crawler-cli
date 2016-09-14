@@ -38,7 +38,7 @@ class MainWindow(ttk.Frame):
                 folder_thread.start()
         elif sys.platform == "linux":
             self.pointer = "hand2"
-            choose_info_btn_font = "-size 20"
+            choose_info_btn_font = "-size 16"
             field_width = 30
             home = expanduser('~')
             if not os.path.exists("{}/WG Finder/WG Ad Links".format(home)) or not os.path.exists(
@@ -61,7 +61,7 @@ class MainWindow(ttk.Frame):
         atexit.register(self.kill_phantomjs)
 
         choose_info = ttk.Style()
-        choose_info.configure("Choose.TButton", font=choose_info_btn_font, padding=(20, 40, 20, 40))
+        choose_info.configure("Choose.TButton", font=choose_info_btn_font, padding=(10, 30, 10, 30))
         self.warning_lbl_style = ttk.Style()
         self.warning_lbl_style.configure('Warning.TLabel', foreground="red")
         self.large_warning_lbl_style = ttk.Style()
@@ -270,6 +270,8 @@ class MainWindow(ttk.Frame):
             self.form_warning_var.set("Could not connect to the internet, please check your connection and try again")
             self.form_back_btn.configure(state=tk.ACTIVE)
             self.save_button.configure(state=tk.ACTIVE)
+        elif status == "save details timed out":
+            self.form_warning_var.set("WG-Gesucht website timed out, please try again later")
 
     def log_window(self, origin):
         if origin == "choose info":
