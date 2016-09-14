@@ -1,6 +1,5 @@
 beautifulsoup4==4.4.1
-MechanicalSoup==0.4.0
-Pillow==3.3.1
+Pillow==2.9.0
 psutil==3.4.1
 requests==2.11.1
 selenium==2.53.6
