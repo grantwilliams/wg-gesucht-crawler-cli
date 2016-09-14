@@ -2,7 +2,23 @@
 Crawls the WG-Gesucht site for new apartment listings and send a message to the poster,
 based off your saved filters and saved text.
 
-Uses Tkinter for the GUI and MechanicalSoup to crawl the site.
+Uses Tkinter for the GUI and ~~MechanicalSoup~~ Selenium to crawl the site.
+
+**Update**  
+WG-Gesucht changed their login, making it not possbile to use MechanicanlSoup anymore,
+so it now needs to use Selenium.
+
+You can download the PhantomJS binary for you OS can be downloaded [here](http://phantomjs.org/download.html)
+
+It then needs to be placed in the working directory in a folder named '.phantomjs' so the folder tree looks like:
+
+Working Dir  
+├── main.py  
+├── .phantomjs  
+│                     └── bin  
+│                                          └── phantomjs (binary)  
+└── wg_gesucht.py
+
 
 ## Use
 Install the Python packages in the 'requirements.txt' and run then 'main.py'
