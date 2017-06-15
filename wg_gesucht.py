@@ -1,4 +1,5 @@
 import re
+import os
 from os.path import expanduser
 import sys
 import csv
@@ -12,9 +13,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 
+phantomjs_path = os.path.join('.phantomjs', 'bin', 'phantomjs.exe') if sys.platform == 'win32' else os.path.join('.phantomjs', 'bin', 'phantomjs')
 
 def check_wg_credentials(login_info, cred_queue, call_origin):
-    driver = webdriver.PhantomJS(executable_path='.phantomjs/bin/phantomjs')
+    driver = webdriver.PhantomJS(executable_path=phantomjs_path)
     # driver = webdriver.Firefox()
     driver.set_window_size(1920, 1080)
     driver.set_page_load_timeout(15)
@@ -145,7 +147,7 @@ def fetch_filters(driver, log_output_queue):
     for link in filter_links:
         href = link.get('href')
         if href is not None:
-            if 'wohnraumangebote.html?filter=' in href:
+            if 'wohnraumangebote.html?user_filter_id' in href:
                 filters_to_check.append(href)
 
     if len(filters_to_check) < 1:
@@ -192,6 +194,7 @@ def fetch_ads(driver, log_output_queue, filters):
     log_output_queue.put("Searching filters for new ads, may take a while, depending on how many filters you have"
                          " set up.")
     url_list = list()
+    details_list_showing = False
     for wg_filter in filters:
         wg_filter = wg_filter
         while True:
@@ -205,6 +208,15 @@ def fetch_ads(driver, log_output_queue, filters):
             search_results_page = driver.page_source
             soup = BeautifulSoup(search_results_page, 'html.parser')
             if no_captcha(log_output_queue, search_results_page):
+
+                #  change gallery view to list details view
+                if not details_list_showing:
+                    details_button = driver.find_element_by_xpath('//*[@id="rhs_column"]/div[1]/div[2]/div/label[1]')
+                    details_button.click()
+                    details_results_page = driver.page_source
+                    soup = BeautifulSoup(details_results_page, 'html.parser')
+                    details_list_showing = True
+
                 #  get all elements in table of search results
                 link_table = soup.find_all('table', {'id': 'table-compact-list'})
 
@@ -221,23 +233,25 @@ def fetch_ads(driver, log_output_queue, filters):
                     results = tag.find_all('tr', {'class': ['listenansicht0', 'listenansicht1']})
                     for item in results:
                         search_results.append(item)
-
                 continue_next_page = True
                 #  iterates through raw soup data to extract individual ad hrefs
                 for item in search_results:
                     links = item.find_all('a')
                     #  only get ads less than 2 days old
-                    if datetime.strptime(links[2].text.strip(), "%d.%m.%y") >= datetime.now() - timedelta(days=2):
-                        complete_href = "https://www.wg-gesucht.de/{}".format(links[2].get('href'))
-                        if complete_href not in url_list:
-                            already_exists = already_sent(complete_href)
-                            if not already_exists:
-                                url_list.append(complete_href)
+                    try:
+                        if datetime.strptime(links[2].text.strip(), "%d.%m.%y") >= datetime.now() - timedelta(days=2):
+                            complete_href = "https://www.wg-gesucht.de/{}".format(links[2].get('href'))
+                            if complete_href not in url_list:
+                                already_exists = already_sent(complete_href)
+                                if not already_exists:
+                                    url_list.append(complete_href)
+                            else:
+                                pass
                         else:
-                            pass
-                    else:
+                            continue_next_page = False
+                            break
+                    except ValueError:  #  caught if ad is inactive and has no date
                         continue_next_page = False
-                        break
 
                 if continue_next_page:
                     wg_filter = "https://www.wg-gesucht.de/{}".format(next_button_href)
@@ -322,6 +336,13 @@ def email_apartment(driver, log_output_queue, url, login_info, template_text):
             driver.quit()
             return
 
+        accept_terms = driver.find_element_by_xpath('//*[@id="agb"]')
+        if not accept_terms.is_selected():
+            accept_terms.click()
+        email_copy = driver.find_element_by_xpath('//*[@id="kopieanmich"]')
+        if not email_copy.is_selected():
+            email_copy.click()
+
         message_field.submit()
 
         try:
@@ -340,12 +361,14 @@ def email_apartment(driver, log_output_queue, url, login_info, template_text):
             ad_csv_location = "{}/WG Finder/WG Ad Links".format(home)
             offline_ad_location = "{}/WG Finder/Offline Ad Links".format(home)
         # save url to file, so as not to send a message to them again
-        with open("{}/WG Ad Links.csv".format(ad_csv_location), 'a', newline="", encoding='utf-8') as file_write:
+        with open(os.path.join(ad_csv_location, "WG Ad Links.csv"), 'a', newline="", encoding='utf-8') as file_write:
             csv_file_write = csv.writer(file_write)
             csv_file_write.writerow([url, ad_submitter, ad_title])
 
         # save a copy of the ad for offline viewing, in case the ad is deleted before the user can view it online
-        with open("{}/{}-{}-{}".format(offline_ad_location, ad_submitter, ad_title, text_replace(str(url))),
+        if len(ad_title) > 150:
+            ad_title = ad_title[:150]
+        with open(os.path.join(offline_ad_location, "{}-{}-{}".format(ad_submitter, ad_title, text_replace(str(url)))),
                   'w', encoding='utf-8') as outfile:
             outfile.write(str(ad_page_soup))
 
@@ -361,7 +384,7 @@ def start_searching(login_info, log_output_queue, counter=1):
     :param counter: to keep track of how many times WG-Gesucht has been checked
     :return:
     """
-    driver = webdriver.PhantomJS(executable_path='.phantomjs/bin/phantomjs')
+    driver = webdriver.PhantomJS(executable_path=phantomjs_path)
     # driver = webdriver.Firefox()
     driver.set_window_size(1920, 1080)
     driver.set_page_load_timeout(60)

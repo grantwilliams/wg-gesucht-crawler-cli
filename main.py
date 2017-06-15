@@ -379,8 +379,8 @@ class MainWindow(ttk.Frame):
                                                        "messaged for you, and '{}' contains a the actual ads, which "
                                                        "can be viewed offline, in case the submitter has removed the "
                                                        "ad before you get chance to look at it".format(
-                                                        os.path.abspath(message[0]),
-                                                        os.path.abspath(message[1])), parent=self.parent, type="ok")
+                                                           os.path.abspath(message[0]),
+                                                           os.path.abspath(message[1])), parent=self.parent, type="ok")
             self.update_idletasks()
         except queue.Empty:
             self.parent.after(100, self.process_folder_queue)
@@ -397,4 +397,5 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     main()
