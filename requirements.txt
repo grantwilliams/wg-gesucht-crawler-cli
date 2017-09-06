@@ -1,6 +1,6 @@
 beautifulsoup4==4.4.1
 Pillow==4.1.1
-psutil==3.4.1
+psutil==5.2.2
 requests==2.11.1
 selenium==2.53.6
 six==1.10.0

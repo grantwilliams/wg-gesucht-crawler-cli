@@ -17,7 +17,7 @@ phantomjs_path = os.path.join('.phantomjs', 'bin', 'phantomjs.exe') if sys.platf
 
 def check_wg_credentials(login_info, cred_queue, call_origin):
     driver = webdriver.PhantomJS(executable_path=phantomjs_path)
-    # driver = webdriver.Firefox()
+    # driver = webdriver.Chrome('../../chromedriver')
     driver.set_window_size(1920, 1080)
     driver.set_page_load_timeout(15)
 
@@ -385,7 +385,7 @@ def start_searching(login_info, log_output_queue, counter=1):
     :return:
     """
     driver = webdriver.PhantomJS(executable_path=phantomjs_path)
-    # driver = webdriver.Firefox()
+    # driver = webdriver.Chrome('../../chromedriver')
     driver.set_window_size(1920, 1080)
     driver.set_page_load_timeout(60)
 

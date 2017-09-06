@@ -331,6 +331,12 @@ class MainWindow(ttk.Frame):
                 self.saved_info_btn.configure(state=tk.ACTIVE)
                 self.update_info_btn.configure(state=tk.ACTIVE)
                 self.choose_info_warning_var.set('')
+            elif message == "timed out choose info":
+                messagebox.showerror("Timed Out!", "WG-Gesucht website timed out, please try again later.",
+                                     parent=self.parent)
+                self.saved_info_btn.configure(state=tk.ACTIVE)
+                self.update_info_btn.configure(state=tk.ACTIVE)
+                self.choose_info_warning_var.set('')
             elif message == "login ok choose info":
                 self.log_window("choose info")
             elif message == "login not ok choose info":
