@@ -2,23 +2,7 @@
 Crawls the WG-Gesucht site for new apartment listings and send a message to the poster,
 based off your saved filters and saved text.
 
-Uses Tkinter for the GUI and ~~MechanicalSoup~~ Selenium to crawl the site.
-
-**Update**  
-WG-Gesucht changed their login, making it not possbile to use MechanicanlSoup anymore,
-so it now needs to use Selenium.
-
-You can download the PhantomJS binary for you OS can be downloaded [here](http://phantomjs.org/download.html)
-
-It then needs to be placed in the working directory in a folder named '.phantomjs' so the folder tree looks like:
-
-Working Dir  
-├── main.py  
-├── .phantomjs  
-│                     └── bin  
-│                                          └── phantomjs (binary)  
-└── wg_gesucht.py
-
+Uses Tkinter for the GUI and Requests + BeautifulSoup to crawl the site.
 
 ## Use
 Install the Python packages in the 'requirements.txt' and run then 'main.py'
@@ -34,3 +18,10 @@ every 5 minutes, and message any new ones that appear.
 It will also create a folder with the apartment ads that you can view offline, in case
 the poster removes their ad before you get a chance to look at it, which can happen
 if the poster receives a lot a messages in a short amount of time.
+
+**Getting Caught with reCAPTCHA**
+I've made the crawler sleep for 5-8 seconds between each request to try and avoid their reCAPTCHA,
+but if the crawler does get caught, you can sign into your wg-gesucht account manually through the
+browser and solve the reCAPTCHA, then start the crawler again.
+If it continues to happen, you can also increase the sleep time in the 'get_page' function in
+'wg_gesucht.py'

@@ -1,79 +1,64 @@
 import re
 import os
-from os.path import expanduser
-import sys
 import csv
+import sys
 import time
-from datetime import datetime, timedelta
+import datetime
 import random
-from selenium import webdriver
-from selenium.common import exceptions
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
+import requests
+import urllib
 from bs4 import BeautifulSoup
 
-phantomjs_path = os.path.join('.phantomjs', 'bin', 'phantomjs.exe') if sys.platform == 'win32' else os.path.join('.phantomjs', 'bin', 'phantomjs')
 
 def check_wg_credentials(login_info, cred_queue, call_origin):
-    driver = webdriver.PhantomJS(executable_path=phantomjs_path)
-    # driver = webdriver.Chrome('../../chromedriver')
-    driver.set_window_size(1920, 1080)
-    driver.set_page_load_timeout(15)
-
-    try:
-        driver.get('https://www.wg-gesucht.de/')
-    except exceptions.TimeoutException:
-        cred_queue.put("timed out {}".format(call_origin))
-        return
-
-    login_button = driver.find_element_by_xpath(".//*[@id='login_register']/a[2]")
-    login_button.click()
-
-    # wait until login modal appears
-    try:
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
-            By.ID, 'login_email_username')))
-    except exceptions.TimeoutException:
-        cred_queue.put("timed out {}".format(call_origin))
-        driver.quit()
-        return
-
-    email = driver.find_element_by_id('login_email_username')
-    email.send_keys(login_info['email'])
-    password = driver.find_element_by_id('login_password')
-    password.send_keys(login_info['password'])
-    password.submit()
-
     cred_queue.put("Signing into WG-Gesucht...")
 
+    payload = {
+        "login_email_username": login_info['email'],
+        "login_password": login_info['password'],
+        "login_form_auto_login": "1"
+    }
+
+    session = requests.Session()
+
     try:
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
-            By.XPATH, ".//*[@id='service-navigation']/div[1]/div/a")))  # Xpath of logout button
-    except exceptions.TimeoutException:
-        try:
-            driver.find_element_by_id('credentials_invalid')
-        except exceptions.NoSuchElementException:
-            cred_queue.put("timed out {}".format(call_origin))
-            driver.quit()
-            return
-        else:
-            cred_queue.put("login not ok {}".format(call_origin))
-            driver.quit()
-            return
+        login = session.post("https://www.wg-gesucht.de/ajax/api/Smp/api.php?action=login", json=payload)
+    except requests.exceptions.Timeout:
+        cred_queue.put(f"timed out {call_origin}")
+        return
+    except requests.exceptions.ConnectionError:
+        cred_queue.put(f"no connection {call_origin}")
+        return
 
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    if call_origin == "running":
+        return session
 
-    #  checks if the logout menu exists, if not then the login was not successful
-    if len(soup.find_all("div", {"class": "dropdown toggle-logout-menu"})) > 0:
-        cred_queue.put("login ok {}".format(call_origin))
-        driver.quit()
+    if login.json() == True:
+        cred_queue.put(f"login ok {call_origin}")
         return
     else:
-        cred_queue.put("login not ok {}".format(call_origin))
-        driver.quit()
+        cred_queue.put(f"login not ok {call_origin}")
         return
 
+def get_page(session, url, log_output_queue):
+    """
+    Fetches the URL and returns a requests Response object
+    :param session: Requests Session instance
+    :param url: URL to request
+    :param log_output_queue: message queue for log window
+    :return: requests Response object
+    """
+
+    time.sleep(random.randint(5, 8))  # randomise time between requests to avoid reCAPTCHA
+    try:
+        page = session.get(url)
+    except requests.exceptions.Timeout:
+        log_output_queue.put("timed out running")
+    except requests.exceptions.ConnectionError:
+        log_output_queue.put("no connection running")
+    else:
+        if no_captcha(log_output_queue, page):
+            return page
 
 def no_captcha(log_output_queue, page):
     """
@@ -83,109 +68,83 @@ def no_captcha(log_output_queue, page):
     :return: returns True if their is no CAPTCHA, otherwise quits with a message informing the user.
     """
 
-    soup = BeautifulSoup(page, 'html.parser')
-    table = soup.find_all("table", {"id": "captcha"})
+    soup = BeautifulSoup(page.content, 'html.parser')
+    table = soup.find_all("div", {"class": "g-recaptcha"})
 
     if len(table) > 0:
-        log_output_queue.put(["exit", "Sorry! A 'CAPTCHA' has been detected, please wait 10-15 mins and restart"])
-        return
+        log_output_queue.put(["exit", "Sorry! A 'reCAPTCHA' has been detected, please wait 10-15 mins and restart"])
+        sys.exit()
     else:
         return True
 
 
-def retrieve_email_template(driver, log_output_queue):
+def retrieve_email_template(session, log_output_queue):
     """
     Retrieves the users email template from their WG-Gesucht account
-    :param driver: Selenium PhantomJS driver instance.
+    :param session: Requests Session instance.
     :param log_output_queue: message queue for log window
     :return: the email template as a string.
     """
     log_output_queue.put("Retrieving email template...")
-    try:
-        driver.get("https://www.wg-gesucht.de/mein-wg-gesucht-email-template.html")
-    except exceptions.TimeoutException:
-        log_output_queue.put("timed out")
-        driver.quit()
-        return
 
-    template_page = driver.page_source
-    soup = BeautifulSoup(template_page, 'html.parser')
-    template_text = ""
-    if no_captcha(log_output_queue, template_page):
-        template_text = soup.find("textarea", {"id": "user_email_template"}).text
+    template_page = get_page(session, "https://www.wg-gesucht.de/mein-wg-gesucht-email-template.html", log_output_queue)
+
+    soup = BeautifulSoup(template_page.content, 'html.parser')
+    template_text = soup.find("textarea", {"id": "user_email_template"}).text
 
     if template_text == "":
         log_output_queue.put(
             ["exit", "You have not yet saved an email template in your WG-Gesucht account, please log into your "
                      "account and save one at 'https://www.wg-gesucht.de/mein-wg-gesucht-email-template.html'"])
-        return
+        sys.exit()
     else:
         return template_text
 
 
-def fetch_filters(driver, log_output_queue):
+def fetch_filters(session, log_output_queue):
     """
     Create a list of filters to search.
-    :param driver: Selenium PhantomJS driver instance.
+    :param session: Requests Session instance.
     :param log_output_queue: message queue for log window
     :return: a list of hrefs for search filters
     """
-    try:
-        driver.get("https://www.wg-gesucht.de/mein-wg-gesucht-filter.html")
-    except exceptions.TimeoutException:
-        log_output_queue.put("timed out")
-        driver.quit()
-        return
 
-    filters_page = driver.page_source
-    soup = BeautifulSoup(filters_page, 'html.parser')
-    filter_links = []
-    if no_captcha(log_output_queue, filters_page):
-        filter_links = soup.find_all('a')
+    filters_page = get_page(session, "https://www.wg-gesucht.de/mein-wg-gesucht-filter.html", log_output_queue)
 
-    filters_to_check = []
-    for link in filter_links:
-        href = link.get('href')
-        if href is not None:
-            if 'wohnraumangebote.html?user_filter_id' in href:
-                filters_to_check.append(href)
+    soup = BeautifulSoup(filters_page.content, 'html.parser')
+
+    filters_to_check = [link.get('href') for link in soup.find_all(id=re.compile("^filter_name_"))]
 
     if len(filters_to_check) < 1:
         log_output_queue.put(
             ["exit", "No filters found! Please create at least 1 filter on your WG-Gesucht account"])
         return
     else:
-        log_output_queue.put("Filters found: {0}".format(len(filters_to_check)))
+        log_output_queue.put(f"Filters found: {len(filters_to_check)}")
     return filters_to_check
 
 
-def already_sent(href):
+def already_sent(href, wg_ad_links_dir):
     """
     Check if an ad has already been applied for.
     :param href: URL for an ad
     :return: True or False, depending on whether the ad has already been applied for or not.
     """
-    home = expanduser('~')
-    if sys.platform == 'win32':
-        file_location = "WG Ad Links"
-    else:
-        file_location = "{}/WG Finder/WG Ad Links".format(home)
-    with open("{}/WG Ad Links.csv".format(file_location), 'rt', encoding='utf-8') as file:
+
+    with open(os.path.join(wg_ad_links_dir, "WG Ad Links.csv"), 'rt', encoding='utf-8') as file:
         wg_links_file_csv = csv.reader(file)
         link_exists = False
         for wg_links_row in wg_links_file_csv:
             if wg_links_row[0] == href:
                 link_exists = True
                 break
-            else:
-                link_exists = False
     return link_exists
 
 
-def fetch_ads(driver, log_output_queue, filters):
+def fetch_ads(session, log_output_queue, filters, wg_ad_links_dir):
     """
     Create a list of URLs of apartments to message/email.
-    :param driver: Selenium PhantomJS driver instance.
+    :param session: Requests Session instance.
     :param log_output_queue: message queue for log window
     :param filters: a list of URLs for search filters (returned from func 'fetch_filters')
     :return: list a list of URLs of apartments to message/email.
@@ -196,75 +155,55 @@ def fetch_ads(driver, log_output_queue, filters):
     url_list = list()
     details_list_showing = False
     for wg_filter in filters:
-        wg_filter = wg_filter
-        while True:
-            try:
-                driver.get(wg_filter)
-            except exceptions.TimeoutException:
-                log_output_queue.put("timed out")
-                driver.quit()
-                return
+        continue_next_page = True
+        while continue_next_page:
+            search_results_page = get_page(session, wg_filter, log_output_queue)
 
-            search_results_page = driver.page_source
-            soup = BeautifulSoup(search_results_page, 'html.parser')
-            if no_captcha(log_output_queue, search_results_page):
+            soup = BeautifulSoup(search_results_page.content, 'html.parser')
 
-                #  change gallery view to list details view
-                if not details_list_showing:
-                    details_button = driver.find_element_by_xpath('//*[@id="rhs_column"]/div[1]/div[2]/div/label[1]')
-                    details_button.click()
-                    details_results_page = driver.page_source
-                    soup = BeautifulSoup(details_results_page, 'html.parser')
-                    details_list_showing = True
+            #  change gallery view to list details view
+            if not details_list_showing:
+                details_results_page = get_page(session, "https://www.wg-gesucht.de/wg-zimmer-in-Berlin.8.0.0.0.html", log_output_queue)
+                soup = BeautifulSoup(details_results_page.content, 'html.parser')
+                details_list_showing = True
 
-                #  get all elements in table of search results
-                link_table = soup.find_all('table', {'id': 'table-compact-list'})
+            link_table = soup.find('table', {'id': 'table-compact-list'})
 
-                next_button_href = ""
-                all_links = soup.find_all('a')
-                for link in all_links:
-                    if link is not None:
-                        if link.text.strip() == "»":
-                            next_button_href = link.get('href')
+            next_button_href = soup.find('ul', {"class": "pagination"}).find_all('a')[-1].get('href')
 
-                #  gets soup data from the search results table
-                search_results = []
-                for tag in link_table:
-                    results = tag.find_all('tr', {'class': ['listenansicht0', 'listenansicht1']})
-                    for item in results:
-                        search_results.append(item)
-                continue_next_page = True
-                #  iterates through raw soup data to extract individual ad hrefs
-                for item in search_results:
-                    links = item.find_all('a')
-                    #  only get ads less than 2 days old
-                    try:
-                        if datetime.strptime(links[2].text.strip(), "%d.%m.%y") >= datetime.now() - timedelta(days=2):
-                            complete_href = "https://www.wg-gesucht.de/{}".format(links[2].get('href'))
-                            if complete_href not in url_list:
-                                already_exists = already_sent(complete_href)
-                                if not already_exists:
-                                    url_list.append(complete_href)
-                            else:
-                                pass
+            #  gets each row from the search results table
+            search_results = link_table.find_all('tr', {'class': ['listenansicht0', 'listenansicht1']})
+
+            #  iterates through table row to extract individual ad hrefs
+            for item in search_results:
+                link = item.find('td', {"class": "ang_spalte_datum"}).find('a')
+                #  ignores ads older than 2 days
+                try:
+                    post_date = datetime.datetime.strptime(link.text.strip(), "%d.%m.%y").date()
+                    if post_date >= datetime.date.today() - datetime.timedelta(days=2):
+                        complete_href = f"https://www.wg-gesucht.de/{link.get('href')}"
+                        if complete_href not in url_list:
+                            already_exists = already_sent(complete_href, wg_ad_links_dir)
+                            if not already_exists:
+                                url_list.append(complete_href)
                         else:
-                            continue_next_page = False
-                            break
-                    except ValueError:  #  caught if ad is inactive and has no date
+                            pass
+                    else:
                         continue_next_page = False
+                except ValueError:  #  caught if ad is inactive and has no date
+                    continue_next_page = False
 
-                if continue_next_page:
-                    wg_filter = "https://www.wg-gesucht.de/{}".format(next_button_href)
-                else:
-                    break
-    log_output_queue.put("Number of apartments to email: {}".format(len(url_list)))
+            if continue_next_page:
+                wg_filter = f"https://www.wg-gesucht.de/{next_button_href}"
+
+    log_output_queue.put(f"Number of apartments to email: {len(url_list)}")
     return url_list
 
 
-def email_apartment(driver, log_output_queue, url, login_info, template_text):
+def email_apartment(session, log_output_queue, url, login_info, template_text, wg_ad_links_dir, offline_ad_links_dir):
     """
     Sends the user's template message to each new apartment listing found.
-    :param driver: Selenium PhantomJS driver instance.
+    :param session: Requests Session instance.
     :param log_output_queue: message queue for log window
     :param url: URL of an ad for an apartment.
     :param login_info: User's WG-Gesucht account login details.
@@ -278,105 +217,68 @@ def email_apartment(driver, log_output_queue, url, login_info, template_text):
         text = text.replace(':', '').replace('/', '').replace('\\', '').replace('*', '').replace('?', '').replace(
             '|', '').replace('<', '').replace('>', '').replace("https://www.wg-gesucht.de/", "")
         return text
+
+    ad_page = get_page(session, url, log_output_queue)
+
+    ad_page_soup = BeautifulSoup(ad_page.content, 'html.parser')
+
+    ad_submitter = ad_page_soup.find("div", {"class": "rhs_contact_information"}).find("div", {"class": "text-capitalise"}).text.strip()
+
+    ad_title = text_replace(ad_page_soup.find("title").text.strip())
+    ad_submitter = text_replace(ad_submitter)
+    ad_url = text_replace(url)
+
+    send_message_url = ad_page_soup.find("a", {"class": "btn btn-block btn-md btn-orange"}).get('href')
+
+    submit_form_page = get_page(session, send_message_url, log_output_queue)
+    submit_form_page_soup = BeautifulSoup(submit_form_page.content, "html.parser")
+
+    headers = {
+        'content-type': "application/x-www-form-urlencoded",
+        'cache-control': "no-cache",
+    }
+
+    payload = {
+        "nachricht": template_text,
+        "u_anrede": submit_form_page_soup.find("option", selected=True)["value"],  # Title (Herr/Frau)
+        "vorname": submit_form_page_soup.find(attrs={"name": "vorname"})["value"],  # First name
+        "nachname": submit_form_page_soup.find(attrs={"name": "nachname"})["value"],  # Last name
+        "email": login_info['email'],
+        "agb": "on",  # accept terms of service
+        "kopieanmich": "on",  # send copy to self
+        "telefon": login_info['phone_number'],
+        "typ": "0"
+    }
+
+    query_string = urllib.parse.urlencode(payload)
+
     try:
-        driver.get(url)
-    except exceptions.TimeoutException:
-        log_output_queue.put("timed out")
-        driver.quit()
+        sent_message = session.post(send_message_url, data=query_string, headers=headers)
+    except requests.exceptions.Timeout:
+        log_output_queue.put(f"Failed to send message to {ad_submitter}, will try again next time")
         return
 
-    ad_page = driver.page_source
-    ad_page_soup = BeautifulSoup(ad_page, 'html.parser')
+    if "erfolgreich kontaktiert" not in sent_message.text:
+        log_output_queue.put(f"Failed to send message to {ad_submitter}, will try again next time")
+        return
 
-    contact_panel = ad_page_soup.find_all("div", {"class": "rhs_contact_information"})
-    ad_submitter = ''
-    for tag in contact_panel:
-        panel_body = tag.find_all("div", {"class": "panel-body"})
-        for panel in panel_body:
-            divs = panel.find_all("div")
-            for div in divs:
-                if div is not None and div.text.strip() == 'Name:':
-                    ad_submitter = divs[divs.index(div) + 1].text.strip()
+    # save url to file, so as not to send a message to them again
+    with open(os.path.join(wg_ad_links_dir, "WG Ad Links.csv"), 'a', newline="", encoding='utf-8') as file_write:
+        csv_file_write = csv.writer(file_write)
+        csv_file_write.writerow([url, ad_submitter, ad_title])
 
-    if no_captcha(log_output_queue, ad_page):
-        ad_title = text_replace(ad_page_soup.find("title").text.strip())
-        ad_submitter = text_replace(ad_submitter)
-        send_message_url = ad_page_soup.find("a", {"class": "btn btn-block btn-md btn-orange"})
+    # save a copy of the ad for offline viewing, in case the ad is deleted before the user can view it online
+    if len(ad_title) > 150:
+        ad_title = ad_title[:150]
+    with open(os.path.join(offline_ad_links_dir, f"{ad_submitter}-{ad_title}-{ad_url}"),
+    'w', encoding='utf-8') as outfile:
+        outfile.write(str(ad_page_soup))
 
-        try:
-            driver.get(send_message_url.get("href"))
-        except exceptions.TimeoutException:
-            log_output_queue.put("timed out")
-            driver.quit()
-            return
-
-        # clicks security alert, should occur just once per session
-        try:
-            driver.find_element_by_id("sicherheit_bestaetigung").click()
-        except exceptions.ElementNotVisibleException:
-            pass
-        except exceptions.NoSuchElementException:
-            pass
-
-        telephone_field = driver.find_element_by_name('telefon')
-        telephone_field.send_keys(login_info['phone_number'])
-        message_field = driver.find_element_by_id('nachricht-text')
-        message_field.send_keys(template_text)
-
-        try:
-            driver.find_element_by_name('telefon').get_attribute('value') == login_info['phone_number']
-        except AssertionError:
-            log_output_queue.put(["exit", "Error: Could not enter phone number, please close and restart"])
-            driver.quit()
-            return
-        try:
-            driver.find_element_by_id('nachricht-text').get_attribute('value') == template_text
-        except AssertionError:
-            log_output_queue.put(["exit", "Error: Could not enter email template, please close and restart"])
-            driver.quit()
-            return
-
-        accept_terms = driver.find_element_by_xpath('//*[@id="agb"]')
-        if not accept_terms.is_selected():
-            accept_terms.click()
-        email_copy = driver.find_element_by_xpath('//*[@id="kopieanmich"]')
-        if not email_copy.is_selected():
-            email_copy.click()
-
-        message_field.submit()
-
-        try:
-            WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
-                By.CLASS_NAME, 'alert-success')))
-        except exceptions.TimeoutException:
-            log_output_queue.put("Failed to send message to {}, will try again next time".format(ad_submitter))
-            return
-
-        home = expanduser('~')
-        if sys.platform == 'win32':
-            ad_csv_location = "WG Ad Links"
-            offline_ad_location = "Offline Ad Links"
-
-        else:
-            ad_csv_location = "{}/WG Finder/WG Ad Links".format(home)
-            offline_ad_location = "{}/WG Finder/Offline Ad Links".format(home)
-        # save url to file, so as not to send a message to them again
-        with open(os.path.join(ad_csv_location, "WG Ad Links.csv"), 'a', newline="", encoding='utf-8') as file_write:
-            csv_file_write = csv.writer(file_write)
-            csv_file_write.writerow([url, ad_submitter, ad_title])
-
-        # save a copy of the ad for offline viewing, in case the ad is deleted before the user can view it online
-        if len(ad_title) > 150:
-            ad_title = ad_title[:150]
-        with open(os.path.join(offline_ad_location, "{}-{}-{}".format(ad_submitter, ad_title, text_replace(str(url)))),
-                  'w', encoding='utf-8') as outfile:
-            outfile.write(str(ad_page_soup))
-
-        log_output_queue.put(
-            "Message Sent to {} at {}!".format(ad_submitter, datetime.now().strftime("%H:%M:%S")))
+    time_now = datetime.datetime.now().strftime("%H:%M:%S")
+    log_output_queue.put(f"Message Sent to {ad_submitter} at {time_now}!")
 
 
-def start_searching(login_info, log_output_queue, counter=1):
+def start_searching(login_info, log_output_queue, wg_ad_links_dir, offline_ad_links_dir, counter=1):
     """
 
     :param login_info: login details for WG-Gesucht
@@ -384,72 +286,25 @@ def start_searching(login_info, log_output_queue, counter=1):
     :param counter: to keep track of how many times WG-Gesucht has been checked
     :return:
     """
-    driver = webdriver.PhantomJS(executable_path=phantomjs_path)
-    # driver = webdriver.Chrome('../../chromedriver')
-    driver.set_window_size(1920, 1080)
-    driver.set_page_load_timeout(60)
 
     if counter < 2:
         log_output_queue.put("Starting...")
     else:
         log_output_queue.put("Resuming...")
 
-    try:
-        driver.get('https://www.wg-gesucht.de/')
-    except exceptions.TimeoutException:
-        log_output_queue.put("timed out")
-        driver.quit()
-        return
+    session = check_wg_credentials(login_info, log_output_queue, "running")
 
-    login_button = driver.find_element_by_xpath(".//*[@id='login_register']/a[2]")
-    login_button.click()
+    template_text = retrieve_email_template(session, log_output_queue)
 
-    # wait until login modal appears
-    try:
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
-            By.ID, 'login_email_username')))
-    except exceptions.TimeoutException:
-        log_output_queue.put("timed out")
-        driver.quit()
-        return
+    filters_to_check = fetch_filters(session, log_output_queue)
 
-    email = driver.find_element_by_id('login_email_username')
-    email.send_keys(login_info['email'])
-    password = driver.find_element_by_id('login_password')
-    password.send_keys(login_info['password'])
-    password.submit()
-
-    log_output_queue.put("Signing into WG-Gesucht...")
-
-    try:
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
-            By.XPATH, ".//*[@id='service-navigation']/div[1]/div/a")))  # Xpath of logout button
-    except exceptions.TimeoutException:
-        log_output_queue.put("timed out")
-        driver.quit()
-        return
-
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
-
-    #  checks if the logout menu exists, if not then the login was not successful
-    if len(soup.find_all("div", {"class": "dropdown toggle-logout-menu"})) > 0:
-        log_output_queue.put("Login successful!")
-    else:
-        log_output_queue.put("login not ok")
-        return
-
-    template_text = retrieve_email_template(driver, log_output_queue)
-
-    filters_to_check = fetch_filters(driver, log_output_queue)
-
-    ad_list = fetch_ads(driver, log_output_queue, filters_to_check)
+    ad_list = fetch_ads(session, log_output_queue, filters_to_check, wg_ad_links_dir)
 
     for url in ad_list:
-        email_apartment(driver, log_output_queue, url, login_info, template_text)
+        email_apartment(session, log_output_queue, url, login_info, template_text, wg_ad_links_dir, offline_ad_links_dir)
 
-    log_output_queue.put("\nProgram paused at {}... Will resume in 4-5 minutes".format(
-        datetime.now().strftime("%H:%M:%S")))
-    log_output_queue.put("WG-Gesucht checked {} {} since running\n".format(
-        counter, "time" if counter <= 1 else "times"))
+    time_now = datetime.datetime.now().strftime("%H:%M:%S")
+    log_output_queue.put(f"\nProgram paused at {time_now}... Will resume in 4-5 minutes")
+    log_output_queue.put(f"WG-Gesucht checked {counter} {'time' if counter <= 1 else 'times'} since running\n")
     time.sleep(random.randint(240, 300))  # pauses for 4-5 mins before searching again
-    start_searching(login_info, log_output_queue, counter + 1)
+    start_searching(login_info, log_output_queue, wg_ad_links_dir, offline_ad_links_dir, counter + 1)

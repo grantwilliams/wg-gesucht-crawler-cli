@@ -1,5 +1,4 @@
 import os
-from os.path import expanduser
 import sys
 import json
 import threading
@@ -7,12 +6,11 @@ import queue
 import multiprocessing
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
-from idlelib.ToolTip import ToolTip
+from idlelib.tooltip import ToolTip
 from PIL import Image, ImageTk
 import psutil
 import wg_gesucht
 import create_results_folders
-import atexit
 
 
 class MainWindow(ttk.Frame):
@@ -24,41 +22,17 @@ class MainWindow(ttk.Frame):
         self.pack(fill=tk.BOTH, expand=True)
 
         self.folder_queue = queue.Queue()
-        # hide images and icons folder for Windows users
-        if sys.platform == "win32":
-            os.popen("attrib +h .images").close()
-            os.popen("attrib +h .icons").close()
-            os.popen("attrib +h .data_files").close()
-            self.pointer = "hand2"
-            choose_info_btn_font = "-size 18"
-            field_width = 35
-            if not os.path.exists("WG Ad Links") or not os.path.exists("Offline Ad Links"):
-                folder_thread = threading.Thread(target=create_results_folders.create_folders, args=[self.folder_queue])
-                folder_thread.daemon = True
-                folder_thread.start()
-        elif sys.platform == "linux":
-            self.pointer = "hand2"
-            choose_info_btn_font = "-size 16"
-            field_width = 30
-            home = expanduser('~')
-            if not os.path.exists("{}/WG Finder/WG Ad Links".format(home)) or not os.path.exists(
-                    "{}/WG Finder/Offline Ad Links".format(home)):
-                folder_thread = threading.Thread(target=create_results_folders.create_folders, args=[self.folder_queue])
-                folder_thread.daemon = True
-                folder_thread.start()
-        else:
-            self.pointer = "pointinghand"
-            choose_info_btn_font = "-size 20"
-            field_width = 30
-            home = expanduser('~')
-            if not os.path.exists("{}/WG Finder/WG Ad Links".format(home)) or not os.path.exists(
-                    "{}/WG Finder/Offline Ad Links".format(home)):
-                folder_thread = threading.Thread(target=create_results_folders.create_folders, args=[self.folder_queue])
-                folder_thread.daemon = True
-                folder_thread.start()
 
-        # kills phantomjs process incase user exits program without stopping in first
-        atexit.register(self.kill_phantomjs)
+        self.pointer = "pointinghand" if sys.platform == 'darwin' else "hand2"
+        choose_info_btn_font = "-size 16" if sys.platform == 'linux' else "-size 18"
+        field_width = 35 if sys.platform == "win32" else 30
+        self.dirname = os.path.join(os.environ['HOME'], 'Documents', 'WG Finder')
+        self.wg_ad_links = os.path.join(self.dirname, "WG Ad Links")
+        self.offline_ad_links = os.path.join(self.dirname, "Offline Ad Links")
+        if not os.path.exists(self.wg_ad_links) or not os.path.exists(self.offline_ad_links):
+            folder_thread = threading.Thread(target=create_results_folders.create_folders, args=[self.folder_queue])
+            folder_thread.daemon = True
+            folder_thread.start()
 
         choose_info = ttk.Style()
         choose_info.configure("Choose.TButton", font=choose_info_btn_font, padding=(10, 30, 10, 30))
@@ -73,15 +47,8 @@ class MainWindow(ttk.Frame):
         self.title_frame = ttk.Frame(self)
         self.title_frame.columnconfigure(0, weight=1)
         self.title_frame.grid(row=0, column=0, padx=20, pady=(10, 20), sticky=tk.W+tk.E)
-        if sys.platform == 'win32':
-            self.title_img = Image.open('.images/title.png')
-            self.title_photo = ImageTk.PhotoImage(self.title_img)
-        elif sys.platform == 'linux':
-            self.title_img = Image.open('.images/title.png')
-            self.title_photo = ImageTk.PhotoImage(self.title_img)
-        else:
-            self.title_img = Image.open('.images/title.gif')
-            self.title_photo = ImageTk.PhotoImage(self.title_img)
+        self.title_img = Image.open('.images/title.gif' if sys.platform == 'darwin' else '.images/title.png')
+        self.title_photo = ImageTk.PhotoImage(self.title_img)
         self.title = ttk.Label(self.title_frame, image=self.title_photo)
         self.title.grid(row=0, column=0)
 
@@ -111,9 +78,6 @@ class MainWindow(ttk.Frame):
         self.login_info_file = '.data_files/.login_info.json'
         self.login_info = dict()
         if os.path.isfile(self.login_info_file):
-            # make login file hidden for Windows users
-            if sys.platform == "win32":
-                os.popen("attrib +h {}".format(self.login_info_file)).close()
             with open(self.login_info_file) as file:
                 self.login_info = json.load(file)
         else:
@@ -123,7 +87,8 @@ class MainWindow(ttk.Frame):
         self.check_credentials_queue = queue.Queue()
         self.log_output_queue = multiprocessing.Queue()
         self.main_process = multiprocessing.Process(target=wg_gesucht.start_searching,
-                                                    args=[self.login_info, self.log_output_queue])
+                                                    args=[self.login_info, self.log_output_queue, self.wg_ad_links,
+                                                          self.offline_ad_links])
 
         #  create login form widgets
         bullet = "\u2022"
@@ -158,7 +123,7 @@ class MainWindow(ttk.Frame):
         self.log_frame = ttk.Frame(self)
         self.log_text = scrolledtext.ScrolledText(self.log_frame, borderwidth=1, relief='sunken', state=tk.DISABLED)
 
-        if self.login_info.get("password", "") == '' or self.login_info.get("phone_number", "") == '':
+        if self.login_info.get("email", "") == "" or self.login_info.get("password", "") == "":
             self.save_login_details("init")
         else:
             self.choose_info("init")
@@ -226,14 +191,14 @@ class MainWindow(ttk.Frame):
             password = self.password_entry.get()
             phone_number = self.phone_number_entry.get()
             try:
-                int(phone_number.replace("+", "").replace(" ", "").replace("-", ""))
+                if phone_number != '': int(phone_number.replace("+", "").replace(" ", "").replace("-", ""))
             except ValueError:
                 self.warning_lbl_style.configure("Warning.TLabel", foreground='red')
                 self.form_warning_var.set("Phone number must only contain numbers")
                 self.phone_number_var.set('')
                 self.phone_number_entry.focus()
                 return
-            if password != '' and phone_number != '':
+            if email != '' and password != '':
                 if call_origin == "save details":
                     self.warning_lbl_style.configure("Warning.TLabel", foreground='green')
                     self.form_warning_var.set("Trying to log into your WG-Gesucht account...")
@@ -256,7 +221,7 @@ class MainWindow(ttk.Frame):
 
     def check_credentials_return(self, status):
         if status == "save details ok":
-            with open('.data_files/.login_info.json', 'r+', encoding='utf-8') as save:
+            with open('.data_files/.login_info.json', 'w', encoding='utf-8') as save:
                 json.dump(self.login_info, indent=4, sort_keys=True, fp=save)
                 self.log_window("save details")
         elif status == "save details not ok":
@@ -280,6 +245,8 @@ class MainWindow(ttk.Frame):
             self.log_restart_button.grid_forget()
             self.log_back_button.grid_forget()
         elif origin == "save details":
+            self.log_restart_button.grid_forget()
+            self.log_back_button.grid_forget()
             self.form_frame.grid_forget()
 
         self.stop_restart_frame.grid(row=1, column=0, padx=20, sticky=tk.W+tk.E)
@@ -291,21 +258,15 @@ class MainWindow(ttk.Frame):
         self.main_process.start()
         self.parent.after(100, self.process_log_output_queue())
 
-    def kill_phantomjs(self):
-        for process in psutil.process_iter():
-            if 'phantomjs' in process.name():
-                process.kill()
-
     def stop(self):
         pid = self.main_process.pid
         self.main_process.terminate()
         for process in psutil.process_iter():
-            if 'phantomjs' in process.name():
-                process.kill()
             if process.pid == pid:
                 process.kill()
         self.main_process = multiprocessing.Process(target=wg_gesucht.start_searching,
-                                                    args=[self.login_info, self.log_output_queue])
+                                                    args=[self.login_info, self.log_output_queue, self.wg_ad_links,
+                                                          self.offline_ad_links])
         self.log_stop_button.grid_forget()
         self.log_restart_button.grid(row=0, column=0, sticky=tk.W)
         self.log_back_button.grid(row=0, column=1, sticky=tk.W)
@@ -353,11 +314,11 @@ class MainWindow(ttk.Frame):
     def process_log_output_queue(self):
         try:
             message = self.log_output_queue.get(0)
-            if message == "timed out":
+            if message == "timed out running":
                 self.stop()
                 messagebox.showerror("Timed Out!", "WG-Gesucht website is not responding and has timed out, please try "
                                                    "again later", parent=self.parent)
-            elif message == "no connection":
+            elif message == "no connection running":
                 self.stop()
                 messagebox.showerror("No Connection!", "Could not connect to the internet, please check your "
                                                        "connection and try again", parent=self.parent)
@@ -380,13 +341,12 @@ class MainWindow(ttk.Frame):
         try:
             message = self.folder_queue.get(0)
             if isinstance(message, list):
-                messagebox.showinfo("Folders Created", "Two folders have been created, '{}' contains a 'csv' file "
-                                                       "which contains the URL's of the apartment ads the program has "
-                                                       "messaged for you, and '{}' contains a the actual ads, which "
-                                                       "can be viewed offline, in case the submitter has removed the "
-                                                       "ad before you get chance to look at it".format(
-                                                           os.path.abspath(message[0]),
-                                                           os.path.abspath(message[1])), parent=self.parent, type="ok")
+                messagebox.showinfo("Folders Created", f"Two folders have been created, '{self.wg_ad_links}' contains "
+                                                       "a 'csv' file which contains the URL's of the apartment ads the "
+                                                       f"program has messaged for you, and '{self.offline_ad_links}' "
+                                                       "contains a the actual ads, which can be viewed offline, in "
+                                                       "case the submitter has removed the ad before you get chance to "
+                                                       "look at it", parent=self.parent, type="ok")
             self.update_idletasks()
         except queue.Empty:
             self.parent.after(100, self.process_folder_queue)
