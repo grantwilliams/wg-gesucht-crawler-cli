@@ -241,13 +241,11 @@ class MainWindow(ttk.Frame):
     def log_window(self, origin):
         if origin == "choose info":
             self.choose_info_btn_frame.grid_forget()
-        elif origin == "restart":
-            self.log_restart_button.grid_forget()
-            self.log_back_button.grid_forget()
         elif origin == "save details":
-            self.log_restart_button.grid_forget()
-            self.log_back_button.grid_forget()
             self.form_frame.grid_forget()
+
+        self.log_restart_button.grid_forget()
+        self.log_back_button.grid_forget()
 
         self.stop_restart_frame.grid(row=1, column=0, padx=20, sticky=tk.W+tk.E)
         self.log_frame.grid(row=2, column=0, padx=20, pady=10, sticky=tk.W+tk.E)
