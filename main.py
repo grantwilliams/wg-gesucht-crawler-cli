@@ -26,11 +26,13 @@ class MainWindow(ttk.Frame):
         self.pointer = "pointinghand" if sys.platform == 'darwin' else "hand2"
         choose_info_btn_font = "-size 16" if sys.platform == 'linux' else "-size 18"
         field_width = 35 if sys.platform == "win32" else 30
-        self.dirname = os.path.join(os.environ['HOME'], 'Documents', 'WG Finder')
+        home_path = 'HOMEPATH' if sys.platform == 'win32' else 'HOME'
+        self.dirname = os.path.join(os.environ[home_path], 'Documents', 'WG Finder')
         self.wg_ad_links = os.path.join(self.dirname, "WG Ad Links")
         self.offline_ad_links = os.path.join(self.dirname, "Offline Ad Links")
         if not os.path.exists(self.wg_ad_links) or not os.path.exists(self.offline_ad_links):
-            folder_thread = threading.Thread(target=create_results_folders.create_folders, args=[self.folder_queue])
+            folder_thread = threading.Thread(target=create_results_folders.create_folders,
+                                             args=[self.folder_queue, self.dirname])
             folder_thread.daemon = True
             folder_thread.start()
 

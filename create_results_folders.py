@@ -2,8 +2,7 @@ import os
 import csv
 
 
-def create_folders(folder_queue):
-    dirname = os.path.join(os.environ['HOME'], 'Documents', 'WG Finder')
+def create_folders(folder_queue, dirname):
     if not os.path.exists(os.path.join(dirname, "WG Ad Links")):
         os.makedirs(os.path.join(dirname, "WG Ad Links"))
         file_location = os.path.join(dirname, "WG Ad Links")
