@@ -161,9 +161,15 @@ def fetch_ads(session, log_output_queue, filters, wg_ad_links_dir):
 
             soup = BeautifulSoup(search_results_page.content, 'html.parser')
 
+            view_type_links = soup.find_all('a', href=True, title=True)
+            if view_type_links[0]['title'] == 'Listenansicht':
+                list_view_href = view_type_links[0]['href']
+            else:
+                details_list_showing = True
+
             #  change gallery view to list details view
             if not details_list_showing:
-                details_results_page = get_page(session, "https://www.wg-gesucht.de/wg-zimmer-in-Berlin.8.0.0.0.html", log_output_queue)
+                details_results_page = get_page(session, f"https://www.wg-gesucht.de/{list_view_href}", log_output_queue)
                 soup = BeautifulSoup(details_results_page.content, 'html.parser')
                 details_list_showing = True
 
@@ -176,12 +182,12 @@ def fetch_ads(session, log_output_queue, filters, wg_ad_links_dir):
 
             #  iterates through table row to extract individual ad hrefs
             for item in search_results:
-                link = item.find('td', {"class": "ang_spalte_datum"}).find('a')
+                post_datelink = item.find('td', {"class": "ang_spalte_datum"}).find('a')
                 #  ignores ads older than 2 days
                 try:
-                    post_date = datetime.datetime.strptime(link.text.strip(), "%d.%m.%y").date()
+                    post_date = datetime.datetime.strptime(post_datelink.text.strip(), "%d.%m.%y").date()
                     if post_date >= datetime.date.today() - datetime.timedelta(days=2):
-                        complete_href = f"https://www.wg-gesucht.de/{link.get('href')}"
+                        complete_href = f"https://www.wg-gesucht.de/{post_datelink.get('href')}"
                         if complete_href not in url_list:
                             already_exists = already_sent(complete_href, wg_ad_links_dir)
                             if not already_exists:
