@@ -185,7 +185,7 @@ def fetch_ads(session, log_output_queue, filters, wg_ad_links_dir):
                 post_datelink = item.find('td', {"class": "ang_spalte_datum"}).find('a')
                 #  ignores ads older than 2 days
                 try:
-                    post_date = datetime.datetime.strptime(post_datelink.text.strip(), "%d.%m.%y").date()
+                    post_date = datetime.datetime.strptime(post_datelink.text.strip(), "%d.%m.%Y").date()
                     if post_date >= datetime.date.today() - datetime.timedelta(days=2):
                         complete_href = f"https://www.wg-gesucht.de/{post_datelink.get('href')}"
                         if complete_href not in url_list:
