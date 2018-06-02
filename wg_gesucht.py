@@ -176,7 +176,11 @@ def fetch_ads(session, log_output_queue, filters, wg_ad_links_dir):
 
             link_table = soup.find('table', {'id': 'table-compact-list'})
 
-            next_button_href = soup.find('ul', {"class": "pagination"}).find_all('a')[-1].get('href')
+            pagination = soup.find('ul', {"class": "pagination"})
+            if not pagination:
+                continue_next_page = False
+            else:
+                next_button_href = pagination.find_all('a')[-1].get('href')
 
             #  gets each row from the search results table
             search_results = link_table.find_all('tr', {'class': ['listenansicht0', 'listenansicht1']})
