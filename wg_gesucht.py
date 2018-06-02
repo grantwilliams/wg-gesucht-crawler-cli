@@ -16,7 +16,8 @@ def check_wg_credentials(login_info, cred_queue, call_origin):
     payload = {
         "login_email_username": login_info['email'],
         "login_password": login_info['password'],
-        "login_form_auto_login": "1"
+        "login_form_auto_login": "1",
+        "display_language": "de"
     }
 
     session = requests.Session()
@@ -246,14 +247,13 @@ def email_apartment(session, log_output_queue, url, login_info, template_text, w
 
     payload = {
         "nachricht": template_text,
-        "u_anrede": submit_form_page_soup.find("option", selected=True)["value"],  # Title (Herr/Frau)
+        "u_anrede": list(filter(lambda x: x['value'] != '', submit_form_page_soup.find_all("option", selected=True)))[0]['value'],  # Title (Herr/Frau)
         "vorname": submit_form_page_soup.find(attrs={"name": "vorname"})["value"],  # First name
         "nachname": submit_form_page_soup.find(attrs={"name": "nachname"})["value"],  # Last name
         "email": login_info['email'],
         "agb": "on",  # accept terms of service
         "kopieanmich": "on",  # send copy to self
         "telefon": login_info['phone_number'],
-        "typ": "0"
     }
 
     query_string = urllib.parse.urlencode(payload)
