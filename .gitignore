@@ -1,65 +1,66 @@
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
 
-# Folder config file
-Desktop.ini
+# C extensions
+*.so
 
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+venv/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
 
-# Windows shortcuts
-*.lnk
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
 
-# =========================
-# Operating System Files
-# =========================
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
 
-# OSX
-# =========================
+# Translations
+*.mo
+*.pot
 
-.DS_Store
-.AppleDouble
-.LSOverride
+# Django stuff:
+*.log
 
-# Thumbnails
-._*
+# Sphinx documentation
+docs/_build/
 
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
+# PyBuilder
+target/
 
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+#Ipython Notebook
+.ipynb_checkpoints
 
-# Cache Folders/Files
-__pycache__
-
-# Sensitive Files
-.data_files/.login_info.json
-
-# Unneeded Files/Folders
-.idea
-build
-dist
-*.csv
-.phantomjs
-ghostdriver.log
-Offline Ad Links
-WG Ad Links
-setup mac.py
-setup win.py
+.data_files
+.vscode
