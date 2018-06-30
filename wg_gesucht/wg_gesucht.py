@@ -24,10 +24,11 @@ class WgGesuchtCrawler:
         self.session = requests.Session()
         self.logger = self.get_logger()
         self.counter = 1
+        self.continue_next_page = True
 
     def get_logger(self):
         formatter = logging.Formatter(
-            '%(asctime)s::%(name)s::%(levelname)s::%(message)s')
+            '%(asctime)s::%(name)s::%(levelname)s::%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
@@ -150,61 +151,62 @@ class WgGesuchtCrawler:
                     return True
         return False
 
+    def change_to_list_details_view(self, soup, list_view_href=None):
+        view_type_links = soup.find_all('a', href=True, title=True)
+        if view_type_links[0]['title'] == 'Listenansicht':
+            list_view_href = view_type_links[0]['href']
+
+        #  change gallery view to list details view
+        if list_view_href:
+            details_results_page = self.get_page('https://www.wg-gesucht.de/{}'.format(list_view_href))
+            soup = BeautifulSoup(details_results_page.content, 'html.parser')
+        return soup
+
+    def process_filter_results(self, filter_results):
+        url_list = list()
+        for result in filter_results:
+            post_datelink = result.find('td', {'class': 'ang_spalte_datum'}).find('a')
+            #  ignores ads older than 2 days
+            try:
+                post_date = datetime.datetime.strptime(post_datelink.text.strip(), '%d.%m.%Y').date()
+                if post_date >= datetime.date.today() - datetime.timedelta(days=2):
+                    complete_href = 'https://www.wg-gesucht.de/{}'.format(post_datelink.get('href'))
+                    if complete_href not in url_list:
+                        already_exists = self.already_sent(complete_href)
+                        if not already_exists:
+                            url_list.append(complete_href)
+                    else:
+                        pass
+                else:
+                    self.continue_next_page = False
+            except ValueError:  # caught if ad is inactive or has no date
+                self.continue_next_page = False
+        return url_list
 
     def fetch_ads(self, filters):
         self.logger.info('Searching filters for new ads, may take a while, depending on how many filters you '
                          'have set up.')
         url_list = list()
-        details_list_showing = False
         for wg_filter in filters:
-            continue_next_page = True
-            while continue_next_page:
+            while self.continue_next_page:
                 search_results_page = self.get_page(wg_filter)
 
-                soup = BeautifulSoup(search_results_page.content, 'html.parser')
-
-                view_type_links = soup.find_all('a', href=True, title=True)
-                if view_type_links[0]['title'] == 'Listenansicht':
-                    list_view_href = view_type_links[0]['href']
-                else:
-                    details_list_showing = True
-
-                #  change gallery view to list details view
-                if not details_list_showing:
-                    details_results_page = self.get_page('https://www.wg-gesucht.de/{}'.format(list_view_href))
-                    soup = BeautifulSoup(details_results_page.content, 'html.parser')
-                    details_list_showing = True
+                soup = self.change_to_list_details_view(BeautifulSoup(search_results_page.content, 'html.parser'))
 
                 link_table = soup.find('table', {'id': 'table-compact-list'})
 
                 pagination = soup.find('ul', {'class': 'pagination'})
                 if not pagination:
-                    continue_next_page = False
+                    self.continue_next_page = False
                 else:
                     next_button_href = pagination.find_all('a')[-1].get('href')
 
                 #  gets each row from the search results table
                 search_results = link_table.find_all('tr', {'class': ['listenansicht0', 'listenansicht1']})
 
-                for item in search_results:
-                    post_datelink = item.find('td', {'class': 'ang_spalte_datum'}).find('a')
-                    #  ignores ads older than 2 days
-                    try:
-                        post_date = datetime.datetime.strptime(post_datelink.text.strip(), '%d.%m.%Y').date()
-                        if post_date >= datetime.date.today() - datetime.timedelta(days=2):
-                            complete_href = 'https://www.wg-gesucht.de/{}'.format(post_datelink.get('href'))
-                            if complete_href not in url_list:
-                                already_exists = self.already_sent(complete_href)
-                                if not already_exists:
-                                    url_list.append(complete_href)
-                            else:
-                                pass
-                        else:
-                            continue_next_page = False
-                    except ValueError:  # caught if ad is inactive and has no date
-                        continue_next_page = False
+                url_list.extend(self.process_filter_results(search_results))
 
-                if continue_next_page:
+                if self.continue_next_page:
                     wg_filter = 'https://www.wg-gesucht.de/{}'.format(next_button_href)
 
         self.logger.info('Number of apartments to email: %s', len(url_list))
@@ -293,8 +295,8 @@ class WgGesuchtCrawler:
 
         ad_list = self.fetch_ads(filters_to_check)
 
-        for url in ad_list:
-            self.email_apartment(url, template_text)
+        for ad_url in ad_list:
+            self.email_apartment(ad_url, template_text)
 
         time_now = datetime.datetime.now().strftime('%H:%M:%S')
         self.logger.info('Program paused at %s... Will resume in 4-5 minutes', time_now)
