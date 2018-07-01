@@ -5,7 +5,7 @@ import click
 from .create_results_folders import create_folders
 from .logger import get_logger
 from . import user_details as user
-from . import wg_gesucht
+from .wg_gesucht import WgGesuchtCrawler
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOGIN_INFO_FILE = os.path.join(BASE_DIR, '.data_files', 'login_info.json')
@@ -59,6 +59,6 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
         user.save_details(LOGIN_INFO_FILE, login_info)
         logger.info('User login details saved to file')
 
-    wg_gesucht.start_searching(
-        login_info, wg_ad_links, offline_ad_links, logs_folder)
-
+    wg_gesucht_crawler = WgGesuchtCrawler(login_info, wg_ad_links, offline_ad_links, logs_folder)
+    wg_gesucht_crawler.sign_in()
+    wg_gesucht_crawler.search()
