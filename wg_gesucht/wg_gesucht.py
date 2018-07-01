@@ -212,8 +212,7 @@ class WgGesuchtCrawler:
         self.logger.info('Number of apartments to email: %s', len(url_list))
         return url_list
 
-
-    def email_apartment(self, url, template_text):
+    def get_info_from_ad(self, url):
         # cleans up file name to allow saving (removes illegal file name characters)
         def text_replace(text):
             text = re.sub(r'\bhttps://www.wg-gesucht.de/\b|[:/*?|<>&^%@#!]', '', text)
@@ -232,7 +231,32 @@ class WgGesuchtCrawler:
         ad_submitter = text_replace(ad_submitter)
         ad_url = text_replace(url)
 
-        send_message_url = ad_page_soup.find('a', {'class': 'btn btn-block btn-md btn-orange'}).get('href')
+        return {
+            'ad_page_soup': ad_page_soup,
+            'ad_title': ad_title,
+            'ad_submitter': ad_submitter,
+            'ad_url': ad_url
+        }
+
+    def update_files(self, url, ad_info):
+        ad_page_soup, ad_title, ad_submitter, ad_url = ad_info['ad_page_soup'], ad_info['ad_title'], ad_info['ad_submitter'], ad_info['ad_url']
+        # save url to file, so as not to send a message to them again
+        with open(os.path.join(self.ad_links_folder, 'WG Ad Links.csv'), 'a', newline='',
+                  encoding='utf-8') as file_write:
+            csv_file_write = csv.writer(file_write)
+            csv_file_write.writerow([url, ad_submitter, ad_title])
+
+        # save a copy of the ad for offline viewing, in case the ad is deleted before the user can view it online
+        if len(ad_title) > 150:
+            ad_title = ad_title[:150]
+        with open(os.path.join(self.offline_ad_folder, '{}-{}-{}'.format(ad_submitter, ad_title, ad_url)),
+                  'w', encoding='utf-8') as outfile:
+            outfile.write(str(ad_page_soup))
+
+    def email_apartment(self, url, template_text):
+        ad_info = self.get_info_from_ad(url)
+
+        send_message_url = ad_info['ad_page_soup'].find('a', {'class': 'btn btn-block btn-md btn-orange'}).get('href')
 
         submit_form_page = self.get_page(send_message_url)
         submit_form_page_soup = BeautifulSoup(submit_form_page.content, 'html.parser')
@@ -259,31 +283,19 @@ class WgGesuchtCrawler:
         try:
             sent_message = self.session.post(send_message_url, data=query_string, headers=headers)
         except requests.exceptions.Timeout:
-            self.logger.exception('Timed out sending a message to %s, will try again next time', ad_submitter)
+            self.logger.exception('Timed out sending a message to %s, will try again next time', ad_info['ad_submitter'])
             return
 
         if 'erfolgreich kontaktiert' not in sent_message.text:
-            self.logger.warning('Failed to send message to %s, will try again next time', ad_submitter)
+            self.logger.warning('Failed to send message to %s, will try again next time', ad_info['ad_submitter'])
             return
 
-        # save url to file, so as not to send a message to them again
-        with open(os.path.join(self.ad_links_folder, 'WG Ad Links.csv'), 'a', newline='',
-                  encoding='utf-8') as file_write:
-            csv_file_write = csv.writer(file_write)
-            csv_file_write.writerow([url, ad_submitter, ad_title])
-
-        # save a copy of the ad for offline viewing, in case the ad is deleted before the user can view it online
-        if len(ad_title) > 150:
-            ad_title = ad_title[:150]
-        with open(os.path.join(self.offline_ad_folder, '{}-{}-{}'.format(ad_submitter, ad_title, ad_url)),
-                  'w', encoding='utf-8') as outfile:
-            outfile.write(str(ad_page_soup))
-
+        self.update_files(url, ad_info)
         time_now = datetime.datetime.now().strftime('%H:%M:%S')
-        self.logger.info('Message Sent to %s at %s!', ad_submitter, time_now)
+        self.logger.info('Message Sent to %s at %s!', ad_info['ad_submitter'], time_now)
 
 
-    def start_searching(self):
+    def search(self):
         if self.counter < 2:
             self.logger.debug('Starting...')
         else:
@@ -305,4 +317,4 @@ class WgGesuchtCrawler:
         # pauses for 4-5 mins before searching again
         time.sleep(random.randint(240, 300))
         self.counter += 1
-        self.start_searching()
+        self.search()
