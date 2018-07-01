@@ -61,4 +61,4 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
 
     wg_gesucht_crawler = WgGesuchtCrawler(login_info, wg_ad_links, offline_ad_links, logs_folder)
     wg_gesucht_crawler.sign_in()
-    wg_gesucht_crawler.start_searching()
+    wg_gesucht_crawler.search()
