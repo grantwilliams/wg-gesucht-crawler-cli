@@ -37,8 +37,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "wg_gesucht_crawler_cli-"
-    cfg.versionfile_source = "wg_gesucht_crawler_cli/_version.py"
+    cfg.parentdir_prefix = "wg_gesucht-"
+    cfg.versionfile_source = "wg_gesucht/_version.py"
     cfg.verbose = False
     return cfg
 

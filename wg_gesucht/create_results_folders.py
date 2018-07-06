@@ -1,6 +1,6 @@
 import os
 import csv
-from .logger import get_logger, bcolors
+from .logger import get_logger
 
 
 def create_folders(dirname, logs_folder):
@@ -25,7 +25,7 @@ def create_folders(dirname, logs_folder):
                    "contains a the actual ads, which can be viewed offline, in "
                    "case the submitter has removed the ad before you get chance to "
                    "look at it.\n\n",
-                   bcolors.OKGREEN, ad_links_file_location, bcolors.ENDC,
-                   bcolors.OKGREEN, offline_file_location, bcolors.ENDC)
+                   '\033[92m', ad_links_file_location, '\033[0m',
+                   '\033[92m', offline_file_location, '\033[0m')
 
     return

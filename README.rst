@@ -1,5 +1,5 @@
 ===============================
-WG Gesucht Crawler CLI
+WG Gesucht Crawler
 ===============================
 
 .. image:: https://img.shields.io/travis/grantwilliams/wg-gesucht-crawler-cli.svg
@@ -11,10 +11,38 @@ WG Gesucht Crawler CLI
 
 Python web crawler / scraper for WG-Gesucht. Crawls the WG-Gesucht site for new apartment listings and send a message to the poster, based off your saved filters and saved text template.
 
+Installation
+------------
+::
+
+    $ pip install wg-gesucht-crawler-cli
+
+Or, if you have virtualenvwrapper installed::
+
+    $ mkvirtualenv wg-gesucht-crawler-cli
+    $ pip install wg-gesucht-crawler-cli
+
+Use
+---
+Can be run directly from the command line with::
+
+    $ wg-gesucht-crawler-cli --help
+
+Or if you want to use it in your own project:
+
+.. code-block:: python
+
+    from wg_gesucht.crawler import WgGesuchtCrawler
+
+Just make sure to save at least one search filter as well as a template text on your wg-gesucht account.
+
 * Free software: MIT license
-* Documentation: (COMING SOON!) https://wg-gesucht-crawler-cli.readthedocs.org.
+* Documentation: https://wg-gesucht-crawler-cli.readthedocs.org.
 
 Features
 --------
 
-* TODO
+* Searches https://wg-gesucht.de for new WG ads based off your saved filters
+* Sends your saved template message and applies to all matching listings
+* Reruns every ~5 minutes
+* Run on a RPi or free EC2 micro instance 24/7 to always be one of the first to apply for new listings

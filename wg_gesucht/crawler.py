@@ -27,8 +27,7 @@ class WgGesuchtCrawler:
         self.continue_next_page = True
 
     def get_logger(self):
-        formatter = logging.Formatter(
-            '%(asctime)s::%(name)s::%(levelname)s::%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        formatter = logging.Formatter('%(asctime)s::%(name)s::%(levelname)s::%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
@@ -135,7 +134,7 @@ class WgGesuchtCrawler:
 
         filters_to_check = [link.get('href') for link in soup.find_all(id=re.compile('^filter_name_'))]
 
-        if len(filters_to_check) < 1:
+        if not filters_to_check:
             self.logger.warning('No filters found! Please create at least 1 filter on your WG-Gesucht account')
             sys.exit(1)
         else:
@@ -176,7 +175,7 @@ class WgGesuchtCrawler:
                         if not already_exists:
                             url_list.append(complete_href)
                     else:
-                        pass
+                        continue
                 else:
                     self.continue_next_page = False
             except ValueError:  # caught if ad is inactive or has no date
