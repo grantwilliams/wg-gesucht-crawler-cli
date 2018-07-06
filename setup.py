@@ -17,13 +17,16 @@ with open(path.join(here, 'HISTORY.rst'), encoding='utf-8') as history_file:
     history = history_file.read().replace('.. :changelog:', '')
 
 requirements = [
-    # TODO: put package requirements here
-    'click',
+    'beautifulsoup4==4.6.0',
+    'certifi==2018.4.16',
+    'chardet==3.0.4',
+    'click==6.7',
+    'idna==2.7',
+    'requests==2.19.1',
+    'urllib3==1.23',
 ]
 
-test_requirements = [
-    # TODO: put package test requirements here
-]
+test_requirements = []
 
 setup(
     name='wg-gesucht-crawler-cli',
@@ -37,23 +40,25 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     entry_points={
         'console_scripts': [
-            'wg-gesucht-crawler-cli=wg_gesucht_crawler_cli.cli:cli',
+            'wg-gesucht-crawler-cli=wg_gesucht.cli:cli',
         ],
     },
     include_package_data=True,
     install_requires=requirements,
     license="MIT",
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.7',
+        'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3 :: Only',
     ],
     test_suite='tests',
     tests_require=test_requirements,

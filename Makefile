@@ -35,7 +35,7 @@ clean-test:
 	rm -fr htmlcov/
 
 lint:
-	flake8 wg_gesucht_crawler_cli tests
+	flake8 wg_gesucht tests
 
 test:
 	python setup.py test
@@ -44,15 +44,15 @@ test-all:
 	tox
 
 coverage:
-	coverage run --source wg_gesucht_crawler_cli setup.py test
+	coverage run --source wg_gesucht setup.py test
 	coverage report -m
 	coverage html
 	open htmlcov/index.html
 
 docs:
-	rm -f docs/wg_gesucht_crawler_cli.rst
+	rm -f docs/wg_gesucht.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ wg_gesucht_crawler_cli
+	sphinx-apidoc -o docs/ wg_gesucht
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html

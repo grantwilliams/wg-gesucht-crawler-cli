@@ -11,4 +11,4 @@ recursive-exclude * *.py[co]
 recursive-include docs *.rst conf.py Makefile make.bat
 
 include versioneer.py
-include wg_gesucht_crawler_cli/_version.py
+include wg_gesucht/_version.py
