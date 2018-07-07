@@ -8,6 +8,8 @@ WG Gesucht Crawler
 .. image:: https://img.shields.io/pypi/v/wg-gesucht-crawler-cli.svg
         :target: https://pypi.python.org/pypi/wg-gesucht-crawler-cli
 
+.. image:: https://readthedocs.org/projects/wg-gesucht-crawler-cli/badge/?version=latest
+        :target https://wg-gesucht-crawler-cli.readthedocs.io/en/latest/?badge=latest
 
 Python web crawler / scraper for WG-Gesucht. Crawls the WG-Gesucht site for new apartment listings and send a message to the poster, based off your saved filters and saved text template.
 
