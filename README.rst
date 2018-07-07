@@ -8,7 +8,7 @@ WG Gesucht Crawler
 .. image:: https://img.shields.io/pypi/v/wg-gesucht-crawler-cli.svg
         :target: https://pypi.python.org/pypi/wg-gesucht-crawler-cli
 
-.. image:: //readthedocs.org/projects/wg-gesucht-crawler-cli/badge/?version=latest
+.. image:: https://readthedocs.org/projects/wg-gesucht-crawler-cli/badge/?version=latest
         :target: https://wg-gesucht-crawler-cli.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
