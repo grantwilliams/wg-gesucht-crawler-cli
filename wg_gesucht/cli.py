@@ -8,9 +8,6 @@ from .logger import get_logger
 from . import user_details as user
 from .crawler import WgGesuchtCrawler
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOGIN_INFO_FILE = os.path.join(BASE_DIR, '.data_files', 'login_info.json')
-
 
 @click.command()
 @click.option('--change-email', is_flag=True, help='Change your saved email address')
@@ -32,11 +29,13 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
     wg_ad_links = os.path.join(dirname, "WG Ad Links")
     offline_ad_links = os.path.join(dirname, "Offline Ad Links")
     logs_folder = os.path.join(dirname, 'logs')
+    user_folder = os.path.join(dirname, '.user')
+    login_info_file = os.path.join(user_folder, '.login_info.json')
 
     if not os.path.exists(logs_folder):
         os.makedirs(os.path.join(dirname, 'logs'))
-    if not os.path.exists(os.path.join(BASE_DIR, '.data_files')):
-        os.makedirs(os.path.join(BASE_DIR, '.data_files'))
+    if not os.path.exists(user_folder):
+        os.makedirs(os.path.join(dirname, '.user'))
 
     if not os.path.exists(wg_ad_links) or not os.path.exists(offline_ad_links):
         create_folders(dirname, logs_folder)
@@ -46,8 +45,8 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
     def exiting():
         logger.warning('Stopped running!')
     login_info = dict()
-    if os.path.isfile(LOGIN_INFO_FILE):
-        with open(LOGIN_INFO_FILE) as file:
+    if os.path.isfile(login_info_file):
+        with open(login_info_file) as file:
             login_info = json.load(file)
 
     login_info_changed = False
@@ -68,7 +67,7 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
         login_info_changed = True
 
     if login_info_changed and not no_save:
-        user.save_details(LOGIN_INFO_FILE, login_info)
+        user.save_details(login_info_file, login_info)
         logger.info('User login details saved to file')
 
     wg_gesucht = WgGesuchtCrawler(login_info, wg_ad_links, offline_ad_links, logs_folder)
