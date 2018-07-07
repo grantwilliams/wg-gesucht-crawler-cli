@@ -49,3 +49,10 @@ Features
 * Sends your saved template message and applies to all matching listings
 * Reruns every ~5 minutes
 * Run on a RPi or free EC2 micro instance 24/7 to always be one of the first to apply for new listings
+
+
+
+**Getting Caught with reCAPTCHA**
+
+I've made the crawler sleep for 5-8 seconds between each request to try and avoid their reCAPTCHA, but if the crawler does get caught, you can sign into your wg-gesucht account manually through the browser and solve the reCAPTCHA, then start the crawler again.
+If it continues to happen, you can also increase the sleep time in the :code:`get_page()` function in :code:`wg_gesucht.py`
