@@ -164,16 +164,14 @@ class WgGesuchtCrawler:
     def process_filter_results(self, filter_results):
         url_list = list()
         for result in filter_results:
-            post_datelink = result.find('td', {'class': 'ang_spalte_datum'}).find('a')
+            post_date_link = result.find('td', {'class': 'ang_spalte_datum'}).find('a')
             #  ignores ads older than 2 days
             try:
-                post_date = datetime.datetime.strptime(post_datelink.text.strip(), '%d.%m.%Y').date()
+                post_date = datetime.datetime.strptime(post_date_link.text.strip(), '%d.%m.%Y').date()
                 if post_date >= datetime.date.today() - datetime.timedelta(days=2):
-                    complete_href = 'https://www.wg-gesucht.de/{}'.format(post_datelink.get('href'))
-                    if complete_href not in url_list:
-                        already_exists = self.already_sent(complete_href)
-                        if not already_exists:
-                            url_list.append(complete_href)
+                    complete_href = 'https://www.wg-gesucht.de/{}'.format(post_date_link.get('href'))
+                    if not self.already_sent(complete_href):
+                        url_list.append(complete_href)
                     else:
                         continue
                 else:
@@ -187,6 +185,7 @@ class WgGesuchtCrawler:
                          'have set up.')
         url_list = list()
         for wg_filter in filters:
+            self.continue_next_page = True  # resets for each fitler, otherwise will immediately skip other filters
             while self.continue_next_page:
                 search_results_page = self.get_page(wg_filter)
 
@@ -208,8 +207,8 @@ class WgGesuchtCrawler:
                 if self.continue_next_page:
                     wg_filter = 'https://www.wg-gesucht.de/{}'.format(next_button_href)
 
-        self.logger.info('Number of apartments to email: %s', len(url_list))
-        return url_list
+        self.logger.info('Number of apartments to email: %s', len(set(url_list)))
+        return set(url_list)
 
     def get_info_from_ad(self, url):
         # cleans up file name to allow saving (removes illegal file name characters)
