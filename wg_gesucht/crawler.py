@@ -89,7 +89,7 @@ class WgGesuchtCrawler:
             sys.exit(1)
 
         if self.no_captcha(page):
-            self.logger.info('%s: requested successfully', page)
+            self.logger.info('%s: requested successfully', url)
             return page
         return None
 
