@@ -26,7 +26,7 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
     """
     home_path = 'HOMEPATH' if sys.platform == 'win32' else 'HOME'
     dirname = os.path.join(os.environ[home_path],'WG Finder')
-    wg_ad_links = os.path.join(dirname, "Documents", "WG Ad Links")
+    wg_ad_links = os.path.join(dirname, "WG Ad Links")
     offline_ad_links = os.path.join(dirname, "Offline Ad Links")
     logs_folder = os.path.join(dirname, 'logs')
     user_folder = os.path.join(dirname, '.user')
