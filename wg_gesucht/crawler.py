@@ -117,6 +117,16 @@ class WgGesuchtCrawler:
         soup = BeautifulSoup(template_page.content, 'html.parser')
         template_text = soup.find('textarea', {'id': 'user_email_template'}).text
 
+        ## ---- Test if name is set right ----
+
+        # txt_file = open('testfile.txt', 'w+')
+        # txt_file.write(template_text)
+        # txt_file.close()
+        #
+        # txt_file = open('testfile.txt', 'r')
+        # print(txt_file.read())
+        # txt_file.close()
+        ## -----------------------------------
         if not template_text:
             self.logger.warning("""
                 You have not yet saved an email template in your WG-Gesucht account, please log
@@ -125,6 +135,8 @@ class WgGesuchtCrawler:
             sys.exit(1)
         else:
             return template_text
+
+
 
 
     def fetch_filters(self):
@@ -140,7 +152,6 @@ class WgGesuchtCrawler:
         else:
             self.logger.info('Filters found: %s', len(filters_to_check))
         return filters_to_check
-
 
     def already_sent(self, href):
         with open(os.path.join(self.ad_links_folder, 'WG Ad Links.csv'), 'rt', encoding='utf-8') as file:
@@ -235,6 +246,12 @@ class WgGesuchtCrawler:
             'ad_submitter': ad_submitter,
             'ad_url': ad_url
         }
+
+    def substitute_name(self, template_text, ad_info):
+        ad_submitter = ad_info['ad_submitter']
+
+        return individualized_template_text
+
 
     def update_files(self, url, ad_info):
         ad_page_soup, ad_title, ad_submitter, ad_url = ad_info['ad_page_soup'], ad_info['ad_title'], ad_info['ad_submitter'], ad_info['ad_url']
