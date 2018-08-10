@@ -15,6 +15,7 @@ class InfoFilter(logging.Filter):
     def filter(self, record):
         return record.levelno in [20, 30]
 
+
 class WgGesuchtCrawler:
     def __init__(self, login_info, ad_links_folder, offline_ad_folder, logs_folder):
         self.login_info = login_info
@@ -117,16 +118,6 @@ class WgGesuchtCrawler:
         soup = BeautifulSoup(template_page.content, 'html.parser')
         template_text = soup.find('textarea', {'id': 'user_email_template'}).text
 
-        ## ---- Test if name is set right ----
-
-        # txt_file = open('testfile.txt', 'w+')
-        # txt_file.write(template_text)
-        # txt_file.close()
-        #
-        # txt_file = open('testfile.txt', 'r')
-        # print(txt_file.read())
-        # txt_file.close()
-        ## -----------------------------------
         if not template_text:
             self.logger.warning("""
                 You have not yet saved an email template in your WG-Gesucht account, please log

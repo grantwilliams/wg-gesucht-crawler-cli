@@ -25,7 +25,7 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
     Logs files in '/home/YOUR_NAME/Documents/WG Finder'
     """
     home_path = 'HOMEPATH' if sys.platform == 'win32' else 'HOME'
-    dirname = os.path.join(os.environ[home_path],'WG Finder')
+    dirname = os.path.join(os.environ[home_path], 'WG Finder')
     wg_ad_links = os.path.join(dirname, "WG Ad Links")
     offline_ad_links = os.path.join(dirname, "Offline Ad Links")
     logs_folder = os.path.join(dirname, 'logs')
