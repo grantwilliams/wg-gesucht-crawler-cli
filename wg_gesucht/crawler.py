@@ -247,8 +247,21 @@ class WgGesuchtCrawler:
             'ad_url': ad_url
         }
 
-    def substitute_name(self, template_text, ad_info):
-        ad_submitter = ad_info['ad_submitter']
+    def substitute_name(self, template_text, url):
+        ad_info = self.get_info_from_ad(url)
+        print(ad_info['ad_submitter']) # for debug
+
+        if " " in ad_info['ad_submitter']:
+            submitter_name = ad_info['ad_submitter'].split()
+            submitter_first_name = submitter_name[0]
+            # print(submitter_name)
+            # print(submitter_first_name)
+        else:
+            submitter_first_name = ad_info['ad_submitter']
+            # print(submitter_first_name)
+
+        individualized_template_text = template_text.replace('Vorname', submitter_first_name)
+        print(individualized_template_text) # for debug
 
         return individualized_template_text
 
@@ -270,7 +283,7 @@ class WgGesuchtCrawler:
 
     def email_apartment(self, url, template_text):
         ad_info = self.get_info_from_ad(url)
-
+        individualized_template_text = self.substitute_name(template_text, url)
         send_message_url = ad_info['ad_page_soup'].find('a', {'class': 'btn btn-block btn-md btn-orange'}).get('href')
 
         submit_form_page = self.get_page(send_message_url)
@@ -282,7 +295,7 @@ class WgGesuchtCrawler:
         }
 
         payload = {
-            'nachricht': template_text,
+            'nachricht': individualized_template_text,
             'u_anrede': list(filter(lambda x: x['value'] != '',
                                     submit_form_page_soup.find_all('option', selected=True)))[0]['value'],  # Title
             'vorname': submit_form_page_soup.find(attrs={'name': 'vorname'})['value'],  # First name
