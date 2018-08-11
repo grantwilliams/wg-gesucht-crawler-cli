@@ -15,16 +15,16 @@ import unittest
 import wg_gesucht
 from wg_gesucht.crawler import WgGesuchtCrawler
 
-home_path = '/Users/captainnemo'
-dirname = os.path.join(os.environ[home_path], 'WG Finder')
-wg_ad_links = os.path.join(dirname, "WG Ad Links")
-offline_ad_links = os.path.join(dirname, "Offline Ad Links")
-logs_folder = os.path.join(dirname, 'logs')
-user_folder = os.path.join(dirname, '.user')
-login_info_file = os.path.join(user_folder, '.login_info.json')
+# home_path = 'HOMEPATH' if sys.platform == 'win32' else 'HOME'
+# dirname = os.path.join(os.environ[home_path], 'WG Finder')
+# wg_ad_links = os.path.join(dirname, "WG Ad Links")
+# offline_ad_links = os.path.join(dirname, "Offline Ad Links")
+# logs_folder = os.path.join(dirname, 'logs')
+# user_folder = os.path.join(dirname, '.user')
+# login_info_file = os.path.join(user_folder, '.login_info.json')
 
-new_WgGesuchtCrawler = WgGesuchtCrawler(login_info_file, wg_ad_links,
-                                 offline_ad_links, logs_folder)
+new_WgGesuchtCrawler = WgGesuchtCrawler('/Users/captainnemo/WG Finder/.user/.login_info.json', '/Users/captainnemo/WG Finder/WG Ad Links',
+                                        '/Users/captainnemo/WG Finder/Offline Ad Links', '/Users/captainnemo/WG Finder/logs')
 class Testwg_gesucht(unittest.TestCase):
 
     def setUp(self):
