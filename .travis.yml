@@ -48,4 +48,6 @@ install:
   - python -m easy_install -U setuptools
   - pip install -e .[test]
 # command to run tests
-script: python setup.py test
+script:
+    - cd /Users/captainnemo
+    - python setup.py test
