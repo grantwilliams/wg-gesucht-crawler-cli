@@ -238,7 +238,7 @@ class WgGesuchtCrawler:
             'ad_url': ad_url
         }
 
-    def substitute_name(self, template_text, url):
+    def substitute_name(self, template_text, submitter_str):
         """
         Individualizes the email template by substituting the string 'Vorname' with the submitters first name.
 
@@ -250,28 +250,17 @@ class WgGesuchtCrawler:
             individualized_template_text: Template_text containing submitters first name.
         """
 
-        ad_info = self.get_info_from_ad(url)
-        print(ad_info['ad_submitter']) # for debug
-
-        if " " in ad_info['ad_submitter']:
-            submitter_full_name = ad_info['ad_submitter'].split()
-
+        if " " in submitter_str:
+            submitter_full_name = submitter_str.split()
             if submitter_full_name[0] == 'Herr' or submitter_full_name[0] == 'Frau':
-                submitter_name = ad_info['ad_submitter']
-
+                submitter_name = submitter_str
             else:
                 submitter_name = submitter_full_name[0]
-
-            print(submitter_name)
-            print(submitter_full_name[0])
-
         else:
-            submitter_name = ad_info['ad_submitter']
-            print(submitter_name)
+            submitter_name = submitter_str
 
-        individualized_template_text = template_text.replace('Vorname', submitter_name)
-        print(individualized_template_text) # for debug
-
+        individualized_template_text = template_text.replace('Vorname',
+                                                             submitter_name)
         return individualized_template_text
 
     def update_files(self, url, ad_info):
@@ -291,7 +280,7 @@ class WgGesuchtCrawler:
 
     def email_apartment(self, url, template_text):
         ad_info = self.get_info_from_ad(url)
-        individualized_template_text = self.substitute_name(template_text, url)
+        individualized_template_text = self.substitute_name(template_text, ad_info['ad_submitter'])
 
         send_message_url = ad_info['ad_page_soup'].find('a', {'class': 'btn btn-block btn-md btn-orange'}).get('href')
 
