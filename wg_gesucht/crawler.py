@@ -239,23 +239,40 @@ class WgGesuchtCrawler:
         }
 
     def substitute_name(self, template_text, url):
+        """
+        Individualizes the email template by substituting the string 'Vorname' with the submitters first name.
+
+        Arguments:
+            template_text: Template text taken from WG-Gesucht. Needs to have the Word "Vorname" where the submitters name is to be added.
+            url: Url from ad_url list. Passed by email_appartment function.
+
+        Returns:
+            individualized_template_text: Template_text containing submitters first name.
+        """
+
         ad_info = self.get_info_from_ad(url)
         print(ad_info['ad_submitter']) # for debug
 
         if " " in ad_info['ad_submitter']:
-            submitter_name = ad_info['ad_submitter'].split()
-            submitter_first_name = submitter_name[0]
-            # print(submitter_name)
-            # print(submitter_first_name)
-        else:
-            submitter_first_name = ad_info['ad_submitter']
-            # print(submitter_first_name)
+            submitter_full_name = ad_info['ad_submitter'].split()
 
-        individualized_template_text = template_text.replace('Vorname', submitter_first_name)
+            if submitter_full_name[0] == 'Herr' or submitter_full_name[0] == 'Frau':
+                submitter_name = ad_info['ad_submitter']
+
+            else:
+                submitter_name = submitter_full_name[0]
+
+            print(submitter_name)
+            print(submitter_full_name[0])
+
+        else:
+            submitter_name = ad_info['ad_submitter']
+            print(submitter_name)
+
+        individualized_template_text = template_text.replace('Vorname', submitter_name)
         print(individualized_template_text) # for debug
 
         return individualized_template_text
-
 
     def update_files(self, url, ad_info):
         ad_page_soup, ad_title, ad_submitter, ad_url = ad_info['ad_page_soup'], ad_info['ad_title'], ad_info['ad_submitter'], ad_info['ad_url']
@@ -275,6 +292,7 @@ class WgGesuchtCrawler:
     def email_apartment(self, url, template_text):
         ad_info = self.get_info_from_ad(url)
         individualized_template_text = self.substitute_name(template_text, url)
+
         send_message_url = ad_info['ad_page_soup'].find('a', {'class': 'btn btn-block btn-md btn-orange'}).get('href')
 
         submit_form_page = self.get_page(send_message_url)
