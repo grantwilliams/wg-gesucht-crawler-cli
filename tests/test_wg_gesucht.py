@@ -15,7 +15,7 @@ import unittest
 import wg_gesucht
 from wg_gesucht.crawler import WgGesuchtCrawler
 
-dirname = '../../../../WG Finder'
+dirname = '../../../../captainnemo/WG Finder'
 wg_ad_links = os.path.join(dirname, "WG Ad Links")
 offline_ad_links = os.path.join(dirname, "Offline Ad Links")
 logs_folder = os.path.join(dirname, 'logs')
