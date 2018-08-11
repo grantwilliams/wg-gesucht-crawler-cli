@@ -49,5 +49,5 @@ install:
   - pip install -e .[test]
 # command to run tests
 script:
-    - cd /Users/captainnemo
+    - cd ~
     - python setup.py test
