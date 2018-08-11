@@ -15,7 +15,7 @@ import unittest
 import wg_gesucht
 from wg_gesucht.crawler import WgGesuchtCrawler
 
-home_path = 'HOMEPATH' if sys.platform == 'win32' else 'HOME'
+home_path = '/Users/captainnemo'
 dirname = os.path.join(os.environ[home_path], 'WG Finder')
 wg_ad_links = os.path.join(dirname, "WG Ad Links")
 offline_ad_links = os.path.join(dirname, "Offline Ad Links")
