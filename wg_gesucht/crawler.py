@@ -240,10 +240,10 @@ class WgGesuchtCrawler:
 
     def substitute_name(self, template_text, submitter_str):
         """
-        Individualizes the email template by substituting the string 'Vorname' with the submitters first name.
+        Individualizes the email template by substituting the string 'Submitter' in the template with the submitters first name.
 
         Arguments:
-            template_text: Template text taken from WG-Gesucht. Needs to have the Word "Vorname" where the submitters name is to be added.
+            template_text: Template text taken from WG-Gesucht. Needs to have the Word "Submitter" where the submitters name is to be added.
             url: Url from ad_url list. Passed by email_appartment function.
 
         Returns:
@@ -259,7 +259,7 @@ class WgGesuchtCrawler:
         else:
             submitter_name = submitter_str
 
-        individualized_template_text = template_text.replace('Vorname',
+        individualized_template_text = template_text.replace('Submitter',
                                                              submitter_name)
         return individualized_template_text
 
