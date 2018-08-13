@@ -38,12 +38,12 @@ class Testwg_gesucht(unittest.TestCase):
 
     def test_substitute_name_with_title(self):
         self.assertEqual(WgGesuchtCrawler.substitute_name(new_WgGesuchtCrawler,
-                                                          'Vorname', 'Herr Hans Muster'),'Herr Hans Muster')
+                                                          'Submitter', 'Herr Hans Muster'),'Herr Hans Muster')
 
         self.assertEqual(WgGesuchtCrawler.substitute_name(new_WgGesuchtCrawler,
-                                             'Vorname','Frau Hanna Muster'), 'Frau Hanna Muster')
+                                             'Submitter','Frau Hanna Muster'), 'Frau Hanna Muster')
     def test_substitute_name_withOut_title(self):
         self.assertEqual(WgGesuchtCrawler.substitute_name(new_WgGesuchtCrawler,
-                                                          'Vorname', 'Hans Muster'), 'Hans')
+                                                          'Submitter', 'Hans Muster'), 'Hans')
         self.assertEqual(WgGesuchtCrawler.substitute_name(new_WgGesuchtCrawler,
-                                                          'Vorname', 'Hanna'), 'Hanna')
+                                                          'Submitter', 'Hanna'), 'Hanna')
