@@ -274,6 +274,7 @@ class WgGesuchtCrawler:
             'agb': 'on',  # accept terms of service
             'kopieanmich': 'on',  # send copy to self
             'telefon': self.login_info['phone'],
+            'csrf_token': submit_form_page_soup.find(attrs={'name': 'csrf_token'})['value']
         }
 
         query_string = urllib.parse.urlencode(payload)
