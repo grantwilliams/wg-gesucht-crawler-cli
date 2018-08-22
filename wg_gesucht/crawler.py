@@ -15,6 +15,7 @@ class InfoFilter(logging.Filter):
     def filter(self, record):
         return record.levelno in [20, 30]
 
+
 class WgGesuchtCrawler:
     def __init__(self, login_info, ad_links_folder, offline_ad_folder, logs_folder):
         self.login_info = login_info
@@ -127,6 +128,8 @@ class WgGesuchtCrawler:
             return template_text
 
 
+
+
     def fetch_filters(self):
         filters_page = self.get_page('https://www.wg-gesucht.de/mein-wg-gesucht-filter.html')
 
@@ -140,7 +143,6 @@ class WgGesuchtCrawler:
         else:
             self.logger.info('Filters found: %s', len(filters_to_check))
         return filters_to_check
-
 
     def already_sent(self, href):
         with open(os.path.join(self.ad_links_folder, 'WG Ad Links.csv'), 'rt', encoding='utf-8') as file:
@@ -236,6 +238,31 @@ class WgGesuchtCrawler:
             'ad_url': ad_url
         }
 
+    def substitute_name(self, template_text, submitter_str):
+        """
+        Individualizes the email template by substituting the string 'Submitter' in the template with the submitters first name.
+
+        Arguments:
+            template_text: Template text taken from WG-Gesucht. Needs to have the Word "Submitter" where the submitters name is to be added.
+            url: Url from ad_url list. Passed by email_appartment function.
+
+        Returns:
+            individualized_template_text: Template_text containing submitters first name.
+        """
+
+        if " " in submitter_str:
+            submitter_full_name = submitter_str.split()
+            if submitter_full_name[0] == 'Herr' or submitter_full_name[0] == 'Frau':
+                submitter_name = submitter_str
+            else:
+                submitter_name = submitter_full_name[0]
+        else:
+            submitter_name = submitter_str
+
+        individualized_template_text = template_text.replace('Submitter',
+                                                             submitter_name)
+        return individualized_template_text
+
     def update_files(self, url, ad_info):
         ad_page_soup, ad_title, ad_submitter, ad_url = ad_info['ad_page_soup'], ad_info['ad_title'], ad_info['ad_submitter'], ad_info['ad_url']
         # save url to file, so as not to send a message to them again
@@ -253,6 +280,7 @@ class WgGesuchtCrawler:
 
     def email_apartment(self, url, template_text):
         ad_info = self.get_info_from_ad(url)
+        individualized_template_text = self.substitute_name(template_text, ad_info['ad_submitter'])
 
         send_message_url = ad_info['ad_page_soup'].find('a', {'class': 'btn btn-block btn-md btn-orange'}).get('href')
 
@@ -265,7 +293,7 @@ class WgGesuchtCrawler:
         }
 
         payload = {
-            'nachricht': template_text,
+            'nachricht': individualized_template_text,
             'u_anrede': list(filter(lambda x: x['value'] != '',
                                     submit_form_page_soup.find_all('option', selected=True)))[0]['value'],  # Title
             'vorname': submit_form_page_soup.find(attrs={'name': 'vorname'})['value'],  # First name

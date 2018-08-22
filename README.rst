@@ -49,7 +49,7 @@ Features
 * Sends your saved template message and applies to all matching listings
 * Reruns every ~5 minutes
 * Run on a RPi or free EC2 micro instance 24/7 to always be one of the first to apply for new listings
-
+* Individualizes the email template by substituting the string 'Vorname' with the submitters first name
 
 
 **Getting Caught with reCAPTCHA**

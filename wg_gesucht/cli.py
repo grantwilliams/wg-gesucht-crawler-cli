@@ -3,10 +3,10 @@ import sys
 import json
 import atexit
 import click
-from .create_results_folders import create_folders
-from .logger import get_logger
-from . import user_details as user
-from .crawler import WgGesuchtCrawler
+from wg_gesucht.create_results_folders import create_folders
+from wg_gesucht.logger import get_logger
+from wg_gesucht import user_details as user
+from wg_gesucht.crawler import WgGesuchtCrawler
 
 
 @click.command()
@@ -25,7 +25,7 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
     Logs files in '/home/YOUR_NAME/Documents/WG Finder'
     """
     home_path = 'HOMEPATH' if sys.platform == 'win32' else 'HOME'
-    dirname = os.path.join(os.environ[home_path], 'Documents', 'WG Finder')
+    dirname = os.path.join(os.environ[home_path], 'WG Finder')
     wg_ad_links = os.path.join(dirname, "WG Ad Links")
     offline_ad_links = os.path.join(dirname, "Offline Ad Links")
     logs_folder = os.path.join(dirname, 'logs')
