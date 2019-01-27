@@ -10,12 +10,13 @@ from .crawler import WgGesuchtCrawler
 
 
 @click.command()
+@click.option('--template', help='Name of the email template you want to use')
 @click.option('--change-email', is_flag=True, help='Change your saved email address')
 @click.option('--change-password', is_flag=True, help='Change your saved password')
 @click.option('--change-phone', is_flag=True, help='Change your saved phone number')
 @click.option('--change-all', is_flag=True, help='Change all you saved user details')
 @click.option('--no-save', is_flag=True, help="The script won't save your wg-gesucht login details for future use")
-def cli(change_email, change_password, change_phone, change_all, no_save):
+def cli(change_email, change_password, change_phone, change_all, no_save, template):
     """
     -------------------------Wg-Gesucht crawler-------------------------\n
     Searches wg-gesucht.de for new room listings based off your saved filters.
@@ -70,7 +71,7 @@ def cli(change_email, change_password, change_phone, change_all, no_save):
         user.save_details(login_info_file, login_info)
         logger.info('User login details saved to file')
 
-    wg_gesucht = WgGesuchtCrawler(login_info, wg_ad_links, offline_ad_links, logs_folder)
+    wg_gesucht = WgGesuchtCrawler(login_info, wg_ad_links, offline_ad_links, logs_folder, template)
     wg_gesucht.sign_in()
     logger.warning('Running until canceled, check info.log for details...')
     wg_gesucht.search()
