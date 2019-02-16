@@ -254,8 +254,14 @@ class WgGesuchtCrawler:
 
         ad_submitter = ad_page_soup.find('div', {'class': 'rhs_contact_information'}).find(
             'div', {'class': 'text-capitalise'})
-        online_status = ad_submitter.find('span')
-        online_status.extract() if online_status else None
+        try:
+            online_status = ad_submitter.find('span')
+            online_status.extract() if online_status else None
+        except AttributeError:
+            self.logger.exception(
+                'Could not find ad submitter, user probably took down the page')
+            self.update_files(url, ad_info)
+            return
 
         ad_title = text_replace(ad_page_soup.find('title').text)
         ad_submitter = text_replace(ad_submitter.text)
