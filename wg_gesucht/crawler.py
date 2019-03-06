@@ -23,7 +23,7 @@ class WgGesuchtCrawler:
         self.ad_links_folder = ad_links_folder
         self.offline_ad_folder = offline_ad_folder
         self.logs_folder = logs_folder
-        self.template_name = template.lower()
+        self.template_name = template
         self.filter_names = filter_names
         self.submit_message_url = 'https://www.wg-gesucht.de/ajax/api/Smp/api.php?action=conversations'
         self.session = requests.Session()
@@ -152,10 +152,15 @@ class WgGesuchtCrawler:
 
         soup = BeautifulSoup(filters_page.content, 'html.parser')
 
-        filters_to_check = [link.get('href') for link in soup.find_all(
-            id=re.compile('^filter_name_')) if link.text.strip().lower() in self.filter_names]
+        filter_results = soup.find_all(id=re.compile('^filter_name_'))
+        filters_to_check = []
+        if self.filter_names:
+            filters_to_check = [filter.get('href') for filter in filter_results
+            if filter.text.strip().lower() in self.filter_names]
+        else:
+            filters_to_check = [filter.get('href') for filter in filter_results]
 
-        if len(filters_to_check) != len(self.filter_names):
+        if self.filter_names and len(filters_to_check) != len(self.filter_names):
             self.logger.warning('Not all filters you wanted were found, maybe you mispelled one?')
 
         if not filters_to_check:

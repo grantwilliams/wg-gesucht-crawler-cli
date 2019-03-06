@@ -72,6 +72,9 @@ def cli(change_email, change_password, change_phone, change_all, no_save, templa
         user.save_details(login_info_file, login_info)
         logger.info('User login details saved to file')
 
+    if template:
+        template = template.lower()
+
     if filter_names:
         filter_names = [filter.strip().lower() for filter in filter_names.split(',')]
 
