@@ -18,12 +18,13 @@ class InfoFilter(logging.Filter):
 
 
 class WgGesuchtCrawler:
-    def __init__(self, login_info, ad_links_folder, offline_ad_folder, logs_folder, template):
+    def __init__(self, login_info, ad_links_folder, offline_ad_folder, logs_folder, template, filter_names):
         self.login_info = login_info
         self.ad_links_folder = ad_links_folder
         self.offline_ad_folder = offline_ad_folder
         self.logs_folder = logs_folder
-        self.template_name = template
+        self.template_name = template.lower()
+        self.filter_names = filter_names
         self.submit_message_url = 'https://www.wg-gesucht.de/ajax/api/Smp/api.php?action=conversations'
         self.session = requests.Session()
         self.logger = self.get_logger()
@@ -136,7 +137,7 @@ class WgGesuchtCrawler:
                 chosen_text = template_texts[0][1].text
             else:
                 chosen_text = list(filter(lambda text: text[0].text.strip(
-                ) == self.template_name, template_texts))[0][1].text
+                ).lower() == self.template_name, template_texts))[0][1].text
         except IndexError:
             no_template_error()
 
@@ -152,7 +153,10 @@ class WgGesuchtCrawler:
         soup = BeautifulSoup(filters_page.content, 'html.parser')
 
         filters_to_check = [link.get('href') for link in soup.find_all(
-            id=re.compile('^filter_name_'))]
+            id=re.compile('^filter_name_')) if link.text.strip().lower() in self.filter_names]
+
+        if len(filters_to_check) != len(self.filter_names):
+            self.logger.warning('Not all filters you wanted were found, maybe you mispelled one?')
 
         if not filters_to_check:
             self.logger.warning(
