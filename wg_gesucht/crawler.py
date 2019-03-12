@@ -278,6 +278,8 @@ class WgGesuchtCrawler:
         }
 
     def update_files(self, url, ad_info):
+        MAX_FILENAME_LENGTH = 245
+
         ad_page_soup, ad_title, ad_submitter, ad_url = ad_info['ad_page_soup'], ad_info[
             'ad_title'], ad_info['ad_submitter'], ad_info['ad_url']
         # save url to file, so as not to send a message to them again
@@ -287,8 +289,9 @@ class WgGesuchtCrawler:
             csv_file_write.writerow([url, ad_submitter, ad_title])
 
         # save a copy of the ad for offline viewing, in case the ad is deleted before the user can view it online
-        if len(ad_title) > 150:
-            ad_title = ad_title[:150]
+        max_ad_title_length = MAX_FILENAME_LENGTH - len(ad_submitter) - len(ad_url)
+        if len(ad_title) > max_ad_title_length:
+            ad_title = ad_title[:max_ad_title_length - 1] + '...'
         with open(os.path.join(self.offline_ad_folder, '{}-{}-{}'.format(ad_submitter, ad_title, ad_url)),
                   'w', encoding='utf-8') as outfile:
             outfile.write(str(ad_page_soup))
