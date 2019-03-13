@@ -4,6 +4,7 @@ import csv
 import sys
 import json
 import time
+import errno
 import random
 import urllib
 import logging
@@ -292,9 +293,15 @@ class WgGesuchtCrawler:
         max_ad_title_length = MAX_FILENAME_LENGTH - len(ad_submitter) - len(ad_url)
         if len(ad_title) > max_ad_title_length:
             ad_title = ad_title[:max_ad_title_length - 1] + '...'
-        with open(os.path.join(self.offline_ad_folder, '{}-{}-{}'.format(ad_submitter, ad_title, ad_url)),
-                  'w', encoding='utf-8') as outfile:
-            outfile.write(str(ad_page_soup))
+        
+        file_name = '{}-{}-{}'.format(ad_submitter, ad_title, ad_url)
+        try:
+            with open(os.path.join(self.offline_ad_folder, file_name),
+                    'w', encoding='utf-8') as outfile:
+                outfile.write(str(ad_page_soup))
+        except OSError as err:
+            if err.errno == errno.ENAMETOOLONG:
+                self.logger.exception('File name of {} is too long, could not save this ad offline'.format(file_name))
 
     def get_payload(self, submit_form, template_text):
         return {
