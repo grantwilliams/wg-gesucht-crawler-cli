@@ -263,8 +263,8 @@ class WgGesuchtCrawler:
         ad_page_soup = BeautifulSoup(ad_page.content, 'html.parser')
 
         ad_submitter = ad_page_soup.find('div', {'class': 'rhs_contact_information'}).find(
-            'div', {'class': 'text-capitalise'})
-        online_status = ad_submitter.find('span')
+            'div', {'class': 'panel-body'})
+        online_status = ad_submitter.find('div', {'class': 'col-md-6','class':'text-right'})
         online_status.extract() if online_status else None
 
         ad_title = text_replace(ad_page_soup.find('title').text)
@@ -317,7 +317,7 @@ class WgGesuchtCrawler:
 
         try:
             send_message_url = ad_info['ad_page_soup'].find(
-                'a', {'class': 'btn btn-block btn-md btn-orange'}).get('href')
+                'a', {'class': 'btn btn-block btn-md wgg_orange'}).get('href')
         except AttributeError:
             self.logger.exception(
                 'Could not find submit form, you have possibly already sent a message to this user')
