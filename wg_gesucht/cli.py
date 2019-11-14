@@ -10,14 +10,31 @@ from .crawler import WgGesuchtCrawler
 
 
 @click.command()
-@click.option('--filter-names', help='Names of the filters you want to use (comma separated ie: --filter-names="Filter 1,Filter2"')
-@click.option('--template', help='Name of the email template you want to use')
-@click.option('--change-email', is_flag=True, help='Change your saved email address')
-@click.option('--change-password', is_flag=True, help='Change your saved password')
-@click.option('--change-phone', is_flag=True, help='Change your saved phone number')
-@click.option('--change-all', is_flag=True, help='Change all you saved user details')
-@click.option('--no-save', is_flag=True, help="The script won't save your wg-gesucht login details for future use")
-def cli(change_email, change_password, change_phone, change_all, no_save, template, filter_names):
+@click.option(
+    "--filter-names",
+    help='Names of the filters you want to use (comma separated ie: --filter-names="Filter 1,Filter2"',
+)
+@click.option("--template", help="Name of the email template you want to use")
+@click.option("--share-email", is_flag=True, help="Share your email address with people you send messages to")
+@click.option("--change-email", is_flag=True, help="Change your saved email address")
+@click.option("--change-password", is_flag=True, help="Change your saved password")
+@click.option("--change-phone", is_flag=True, help="Change your saved phone number")
+@click.option("--change-all", is_flag=True, help="Change all you saved user details")
+@click.option(
+    "--no-save",
+    is_flag=True,
+    help="The script won't save your wg-gesucht login details for future use",
+)
+def cli(
+    change_email,
+    change_password,
+    change_phone,
+    change_all,
+    no_save,
+    template,
+    filter_names,
+    share_email
+):
     """
     -------------------------Wg-Gesucht crawler-------------------------\n
     Searches wg-gesucht.de for new room listings based off your saved filters.
@@ -26,59 +43,67 @@ def cli(change_email, change_password, change_phone, change_all, no_save, templa
     for a free room.\n
     Logs files in '/home/YOUR_NAME/Documents/WG Finder'
     """
-    home_path = 'HOMEPATH' if sys.platform == 'win32' else 'HOME'
-    dirname = os.path.join(os.environ[home_path], 'Documents', 'WG Finder')
+    home_path = "HOMEPATH" if sys.platform == "win32" else "HOME"
+    dirname = os.path.join(os.environ[home_path], "Documents", "WG Finder")
     wg_ad_links = os.path.join(dirname, "WG Ad Links")
     offline_ad_links = os.path.join(dirname, "Offline Ad Links")
-    logs_folder = os.path.join(dirname, 'logs')
-    user_folder = os.path.join(dirname, '.user')
-    login_info_file = os.path.join(user_folder, '.login_info.json')
+    logs_folder = os.path.join(dirname, "logs")
+    user_folder = os.path.join(dirname, ".user")
+    login_info_file = os.path.join(user_folder, ".login_info.json")
 
     if not os.path.exists(logs_folder):
-        os.makedirs(os.path.join(dirname, 'logs'))
+        os.makedirs(os.path.join(dirname, "logs"))
     if not os.path.exists(user_folder):
-        os.makedirs(os.path.join(dirname, '.user'))
+        os.makedirs(os.path.join(dirname, ".user"))
 
     if not os.path.exists(wg_ad_links) or not os.path.exists(offline_ad_links):
         create_folders(dirname, logs_folder)
 
     logger = get_logger(__name__, folder=logs_folder)
+
     @atexit.register
     def exiting():
-        logger.warning('Stopped running!')
+        logger.warning("Stopped running!")
+
     login_info = dict()
     if os.path.isfile(login_info_file):
         with open(login_info_file) as file:
             login_info = json.load(file)
 
     login_info_changed = False
-    if change_all or not login_info.get('email', '') or not login_info.get('password', ''):
+    if (
+        change_all
+        or not login_info.get("email", "")
+        or not login_info.get("password", "")
+    ):
         login_info = user.change_all()
         login_info_changed = True
 
     if change_email:
-        login_info['email'] = user.change_email()
+        login_info["email"] = user.change_email()
         login_info_changed = True
 
     if change_password:
-        login_info['password'] = user.change_password()
+        login_info["password"] = user.change_password()
         login_info_changed = True
 
     if change_phone:
-        login_info['phone'] = user.change_phone()
+        login_info["phone"] = user.change_phone()
         login_info_changed = True
 
     if login_info_changed and not no_save:
         user.save_details(login_info_file, login_info)
-        logger.info('User login details saved to file')
+        logger.info("User login details saved to file")
 
     if template:
         template = template.lower()
 
     if filter_names:
-        filter_names = [filter.strip().lower() for filter in filter_names.split(',')]
+        filter_names = [filter.strip().lower() for filter in filter_names.split(",")]
 
-    wg_gesucht = WgGesuchtCrawler(login_info, wg_ad_links, offline_ad_links, logs_folder, template, filter_names)
+    wg_gesucht = WgGesuchtCrawler(
+        login_info, wg_ad_links, offline_ad_links, logs_folder, template, filter_names, share_email
+    )
     wg_gesucht.sign_in()
-    logger.warning('Running until canceled, check info.log for details...')
+    logger.warning("Running until canceled, check info.log for details...")
     wg_gesucht.search()
