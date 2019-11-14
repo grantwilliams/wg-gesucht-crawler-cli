@@ -27,6 +27,7 @@ class WgGesuchtCrawler:
         logs_folder,
         template,
         filter_names,
+        share_email,
     ):
         self.login_info = login_info
         self.ad_links_folder = ad_links_folder
@@ -34,6 +35,7 @@ class WgGesuchtCrawler:
         self.logs_folder = logs_folder
         self.template_name = template
         self.filter_names = filter_names
+        self.share_email = share_email
         self.submit_message_url = (
             "https://www.wg-gesucht.de/ajax/api/Smp/api.php?action=conversations"
         )
@@ -313,20 +315,13 @@ class WgGesuchtCrawler:
 
         ad_page_soup = BeautifulSoup(ad_page.content, "html.parser")
 
-        ad_submitter = ad_page_soup.find(
-            "div", {"class": "rhs_contact_information"}
-        ).find("div", {"class": "text-capitalise"})
-        online_status = ad_submitter.find("span")
-        online_status.extract() if online_status else None
-
         ad_title = text_replace(ad_page_soup.find("title").text)
-        ad_submitter = text_replace(ad_submitter.text)
         ad_url = text_replace(url)
 
         return {
             "ad_page_soup": ad_page_soup,
             "ad_title": ad_title,
-            "ad_submitter": ad_submitter,
+            "ad_submitter": "N/A",
             "ad_url": ad_url,
         }
 
@@ -383,7 +378,7 @@ class WgGesuchtCrawler:
         try:
             send_message_url = (
                 ad_info["ad_page_soup"]
-                .find("a", {"class": "btn btn-block btn-md btn-orange"})
+                .find("a", {"class": "btn btn-block btn-md wgg_orange"})
                 .get("href")
             )
         except AttributeError:
@@ -396,6 +391,24 @@ class WgGesuchtCrawler:
         submit_form_page = self.get_page(send_message_url)
         submit_form_page_soup = BeautifulSoup(submit_form_page.content, "html.parser")
         submit_form = submit_form_page_soup.find("form", {"id": "messenger_form"})
+
+        if not submit_form:
+            self.logger.exception(
+                "Could not find submit form, you have possibly already sent a message to this user"
+            )
+            self.update_files(url, ad_info)
+            return
+        
+        ad_submitter = (
+            submit_form_page_soup.find(
+                attrs={"class": "control-label", "for": "message_input"}
+            )
+            .text.replace("Nachricht an ", "")
+            .replace(":", "")
+            .rstrip()
+            .lstrip()
+        )
+        ad_info["ad_submitter"] = ad_submitter
 
         headers = {
             "Content-Type": "application/json",
