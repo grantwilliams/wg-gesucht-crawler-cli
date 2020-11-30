@@ -37,7 +37,7 @@ class WgGesuchtCrawler:
         self.filter_names = filter_names
         self.share_email = share_email
         self.submit_message_url = (
-            "https://www.wg-gesucht.de/ajax/api/Smp/api.php?action=conversations"
+            "https://www.wg-gesucht.de/ajax/conversations.php?action=conversations"
         )
         self.session = requests.Session()
         self.logger = self.get_logger()
@@ -87,7 +87,7 @@ class WgGesuchtCrawler:
 
         try:
             login = self.session.post(
-                "https://www.wg-gesucht.de/ajax/api/Smp/api.php?action=login",
+                "https://www.wg-gesucht.de/ajax/sessions.php?action=login",
                 json=payload,
             )
         except requests.exceptions.Timeout:
